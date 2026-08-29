@@ -26,11 +26,13 @@ export default function AdminLayout({
       <aside className="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 p-6 flex flex-col justify-between md:sticky md:top-0 md:h-screen">
         <div className="space-y-6">
           <div>
-            <h2 className="text-sm font-black text-white tracking-wider flex items-center gap-2">
-              <LayoutDashboard className="w-4 h-4 text-emerald-400" />
-              一条魚後台管理
-            </h2>
-            <p className="text-[10px] text-slate-500 mt-0.5">即時現場連線搶單系統</p>
+            <Link href="/admin" className="block group">
+              <h2 className="text-sm font-black text-white tracking-wider flex items-center gap-2 group-hover:text-emerald-400 transition">
+                <LayoutDashboard className="w-4 h-4 text-emerald-400" />
+                一条魚後台管理
+              </h2>
+              <p className="text-[10px] text-slate-500 mt-0.5">即時現場連線搶單系統</p>
+            </Link>
           </div>
 
           <nav className="space-y-1.5">

@@ -162,6 +162,18 @@ function AdminOrdersPage() {
             alert('封存失敗');
         }
     };
+    // 🟢 新增：將訂單從「待入帳」退回「進行中」
+    const handleRevertToActive = async (orderIds)=>{
+        if (!confirm('確定要將此訂單退回「進行中」嗎？')) return;
+        const { error } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('orders').update({
+            pay_status: 'unpaid'
+        }).in('id', orderIds);
+        if (!error) {
+            fetchData();
+        } else {
+            alert('退回失敗');
+        }
+    };
     const copy711ShippingInfo = (g)=>{
         const text = `【7-11 交貨便 0元純取貨】\n收件人：${g.buyer_name || g.line_name}\n手機：${g.buyer_phone || '未提供'}\n門市：${g.store_name || '未提供'}`;
         navigator.clipboard.writeText(text);
@@ -297,14 +309,14 @@ function AdminOrdersPage() {
                                         className: "w-6 h-6 text-emerald-400"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 366,
+                                        lineNumber: 381,
                                         columnNumber: 13
                                     }, this),
                                     "買家整單與結帳中樞 (7-11 交貨便)"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 365,
+                                lineNumber: 380,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -312,13 +324,13 @@ function AdminOrdersPage() {
                                 children: "出貨寄出後訂單將自動歸檔，讓當前作業畫面保持乾淨！"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 369,
+                                lineNumber: 384,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 364,
+                        lineNumber: 379,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -332,7 +344,7 @@ function AdminOrdersPage() {
                                         children: orderTab === 'completed' ? '已完成訂單總額' : '分頁應收總額'
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 376,
+                                        lineNumber: 391,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -343,13 +355,13 @@ function AdminOrdersPage() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 379,
+                                        lineNumber: 394,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 375,
+                                lineNumber: 390,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -360,26 +372,26 @@ function AdminOrdersPage() {
                                         className: `w-4 h-4 ${loading ? 'animate-spin' : ''}`
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 387,
+                                        lineNumber: 402,
                                         columnNumber: 13
                                     }, this),
                                     "重新整理"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 383,
+                                lineNumber: 398,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 374,
+                        lineNumber: 389,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 363,
+                lineNumber: 378,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -396,7 +408,7 @@ function AdminOrdersPage() {
                                 className: "w-3.5 h-3.5"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 400,
+                                lineNumber: 415,
                                 columnNumber: 11
                             }, this),
                             " 進行中 (",
@@ -405,7 +417,7 @@ function AdminOrdersPage() {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 394,
+                        lineNumber: 409,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -419,7 +431,7 @@ function AdminOrdersPage() {
                                 className: "w-3.5 h-3.5"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 409,
+                                lineNumber: 424,
                                 columnNumber: 11
                             }, this),
                             " 待入帳 (",
@@ -428,7 +440,7 @@ function AdminOrdersPage() {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 403,
+                        lineNumber: 418,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -442,7 +454,7 @@ function AdminOrdersPage() {
                                 className: "w-3.5 h-3.5"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 418,
+                                lineNumber: 433,
                                 columnNumber: 11
                             }, this),
                             " 準備出貨 (",
@@ -451,7 +463,7 @@ function AdminOrdersPage() {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 412,
+                        lineNumber: 427,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -465,7 +477,7 @@ function AdminOrdersPage() {
                                 className: "w-3.5 h-3.5"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 427,
+                                lineNumber: 442,
                                 columnNumber: 11
                             }, this),
                             " 已出貨 (",
@@ -474,7 +486,7 @@ function AdminOrdersPage() {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 421,
+                        lineNumber: 436,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -488,7 +500,7 @@ function AdminOrdersPage() {
                                 className: "w-3.5 h-3.5"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 436,
+                                lineNumber: 451,
                                 columnNumber: 11
                             }, this),
                             " 已完成訂單 (",
@@ -497,13 +509,13 @@ function AdminOrdersPage() {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 430,
+                        lineNumber: 445,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 393,
+                lineNumber: 408,
                 columnNumber: 7
             }, this),
             availableBatches.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -519,7 +531,7 @@ function AdminOrdersPage() {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 442,
+                        lineNumber: 457,
                         columnNumber: 11
                     }, this),
                     availableBatches.map((b)=>{
@@ -535,14 +547,14 @@ function AdminOrdersPage() {
                             ]
                         }, b.id, true, {
                             fileName: "[project]/src/app/admin/orders/page.tsx",
-                            lineNumber: 455,
+                            lineNumber: 470,
                             columnNumber: 15
                         }, this);
                     })
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 441,
+                lineNumber: 456,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -552,7 +564,7 @@ function AdminOrdersPage() {
                         className: "w-5 h-5 text-slate-400 absolute left-4 top-4"
                     }, void 0, false, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 472,
+                        lineNumber: 487,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -563,13 +575,13 @@ function AdminOrdersPage() {
                         className: "w-full bg-slate-900 border border-slate-800 rounded-2xl pl-12 pr-4 py-3.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-400"
                     }, void 0, false, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 473,
+                        lineNumber: 488,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 471,
+                lineNumber: 486,
                 columnNumber: 7
             }, this),
             loading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -577,14 +589,14 @@ function AdminOrdersPage() {
                 children: "載入整單資料中..."
             }, void 0, false, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 483,
+                lineNumber: 498,
                 columnNumber: 9
             }, this) : filteredList.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl p-16 text-center text-slate-400 text-sm",
                 children: "目前此分頁沒有任何訂單"
             }, void 0, false, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 485,
+                lineNumber: 500,
                 columnNumber: 9
             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "space-y-5",
@@ -608,12 +620,12 @@ function AdminOrdersPage() {
                                                     className: "w-6 h-6 fill-[#06C755]"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                    lineNumber: 514,
+                                                    lineNumber: 529,
                                                     columnNumber: 23
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 513,
+                                                lineNumber: 528,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -627,7 +639,7 @@ function AdminOrdersPage() {
                                                                 children: g.line_name
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 518,
+                                                                lineNumber: 533,
                                                                 columnNumber: 25
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -635,7 +647,7 @@ function AdminOrdersPage() {
                                                                 children: getBatchBadgeWithFlag(g.batch_name)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 520,
+                                                                lineNumber: 535,
                                                                 columnNumber: 25
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -648,7 +660,7 @@ function AdminOrdersPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 524,
+                                                                lineNumber: 539,
                                                                 columnNumber: 25
                                                             }, this),
                                                             isCompleted ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -656,7 +668,7 @@ function AdminOrdersPage() {
                                                                 children: "✓ 已完成訂單"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 529,
+                                                                lineNumber: 544,
                                                                 columnNumber: 27
                                                             }, this) : isShipped ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 className: "text-xs bg-purple-500/20 text-purple-300 px-2.5 py-1 rounded-md font-bold flex items-center gap-1",
@@ -665,14 +677,14 @@ function AdminOrdersPage() {
                                                                         className: "w-3.5 h-3.5"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                        lineNumber: 534,
+                                                                        lineNumber: 549,
                                                                         columnNumber: 29
                                                                     }, this),
                                                                     " 已寄出交貨便"
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 533,
+                                                                lineNumber: 548,
                                                                 columnNumber: 27
                                                             }, this) : isPaid ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 className: "text-xs bg-blue-500/20 text-blue-300 px-2.5 py-1 rounded-md font-bold flex items-center gap-1",
@@ -681,14 +693,14 @@ function AdminOrdersPage() {
                                                                         className: "w-3.5 h-3.5"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                        lineNumber: 538,
+                                                                        lineNumber: 553,
                                                                         columnNumber: 29
                                                                     }, this),
                                                                     " 已入帳・準備出貨"
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 537,
+                                                                lineNumber: 552,
                                                                 columnNumber: 27
                                                             }, this) : isReported ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 className: "text-xs bg-amber-500/20 text-amber-300 px-2.5 py-1 rounded-md font-bold animate-pulse flex items-center gap-1",
@@ -697,27 +709,27 @@ function AdminOrdersPage() {
                                                                         className: "w-3.5 h-3.5"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                        lineNumber: 542,
+                                                                        lineNumber: 557,
                                                                         columnNumber: 29
                                                                     }, this),
                                                                     " 已回報匯款與門市"
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 541,
+                                                                lineNumber: 556,
                                                                 columnNumber: 27
                                                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 className: "text-xs bg-slate-950 text-slate-300 px-2.5 py-1 rounded-md",
                                                                 children: "待處理 (未填資料)"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 545,
+                                                                lineNumber: 560,
                                                                 columnNumber: 27
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 517,
+                                                        lineNumber: 532,
                                                         columnNumber: 23
                                                     }, this),
                                                     g.store_name && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -730,7 +742,7 @@ function AdminOrdersPage() {
                                                                         className: "w-4 h-4"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                        lineNumber: 554,
+                                                                        lineNumber: 569,
                                                                         columnNumber: 29
                                                                     }, this),
                                                                     " ",
@@ -738,7 +750,7 @@ function AdminOrdersPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 553,
+                                                                lineNumber: 568,
                                                                 columnNumber: 27
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -748,7 +760,7 @@ function AdminOrdersPage() {
                                                                         className: "w-4 h-4 text-slate-400"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                        lineNumber: 557,
+                                                                        lineNumber: 572,
                                                                         columnNumber: 29
                                                                     }, this),
                                                                     " ",
@@ -756,7 +768,7 @@ function AdminOrdersPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 556,
+                                                                lineNumber: 571,
                                                                 columnNumber: 27
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -766,7 +778,7 @@ function AdminOrdersPage() {
                                                                         className: "w-4 h-4"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                        lineNumber: 560,
+                                                                        lineNumber: 575,
                                                                         columnNumber: 29
                                                                     }, this),
                                                                     " ",
@@ -774,25 +786,25 @@ function AdminOrdersPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 559,
+                                                                lineNumber: 574,
                                                                 columnNumber: 27
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 552,
+                                                        lineNumber: 567,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 516,
+                                                lineNumber: 531,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 512,
+                                        lineNumber: 527,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -806,18 +818,36 @@ function AdminOrdersPage() {
                                                         className: "w-4 h-4"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 574,
+                                                        lineNumber: 589,
                                                         columnNumber: 25
                                                     }, this),
                                                     copySuccessId === g.key ? '已複製！' : '複製匯款通知'
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 570,
+                                                lineNumber: 585,
                                                 columnNumber: 23
                                             }, this),
                                             orderTab === 'reported' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
                                                 children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                        onClick: ()=>handleRevertToActive(g.order_ids),
+                                                        className: "px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border border-slate-700",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$rotate$2d$ccw$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__RotateCcw$3e$__["RotateCcw"], {
+                                                                className: "w-4 h-4 text-amber-400"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/app/admin/orders/page.tsx",
+                                                                lineNumber: 601,
+                                                                columnNumber: 27
+                                                            }, this),
+                                                            " 退回進行中"
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/src/app/admin/orders/page.tsx",
+                                                        lineNumber: 597,
+                                                        columnNumber: 25
+                                                    }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                                         onClick: ()=>copyPaymentNotice(g),
                                                         className: "px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-2 cursor-pointer",
@@ -826,14 +856,14 @@ function AdminOrdersPage() {
                                                                 className: "w-4 h-4"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 585,
+                                                                lineNumber: 608,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " 複製匯款通知"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 581,
+                                                        lineNumber: 604,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -844,20 +874,20 @@ function AdminOrdersPage() {
                                                                 className: "w-4 h-4"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 591,
+                                                                lineNumber: 614,
                                                                 columnNumber: 27
                                                             }, this),
                                                             "確認入帳"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 587,
+                                                        lineNumber: 610,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 580,
+                                                lineNumber: 595,
                                                 columnNumber: 23
                                             }, this),
                                             orderTab === 'shipping' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -870,14 +900,14 @@ function AdminOrdersPage() {
                                                                 className: "w-4 h-4 text-amber-400"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 604,
+                                                                lineNumber: 626,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " 移回待入帳"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 600,
+                                                        lineNumber: 622,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -888,14 +918,14 @@ function AdminOrdersPage() {
                                                                 className: "w-4 h-4 text-emerald-400"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 610,
+                                                                lineNumber: 632,
                                                                 columnNumber: 27
                                                             }, this),
                                                             "列印核對單"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 606,
+                                                        lineNumber: 628,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -906,14 +936,14 @@ function AdminOrdersPage() {
                                                                 className: "w-4 h-4"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 618,
+                                                                lineNumber: 640,
                                                                 columnNumber: 27
                                                             }, this),
                                                             copyShipId === g.key ? '已複製 7-11 格式！' : '複製 7-11 寄件資料'
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 614,
+                                                        lineNumber: 636,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -922,13 +952,13 @@ function AdminOrdersPage() {
                                                         children: "標記已出貨"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 622,
+                                                        lineNumber: 644,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 598,
+                                                lineNumber: 621,
                                                 columnNumber: 23
                                             }, this),
                                             orderTab === 'shipped' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -941,14 +971,14 @@ function AdminOrdersPage() {
                                                                 className: "w-4 h-4 text-amber-400"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 637,
+                                                                lineNumber: 659,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " 移回準備出貨"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 633,
+                                                        lineNumber: 655,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -957,13 +987,13 @@ function AdminOrdersPage() {
                                                         children: "移至已完成訂單"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 639,
+                                                        lineNumber: 661,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 632,
+                                                lineNumber: 654,
                                                 columnNumber: 23
                                             }, this),
                                             orderTab === 'completed' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -977,14 +1007,14 @@ function AdminOrdersPage() {
                                                                 className: "w-4 h-4 text-amber-400"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 654,
+                                                                lineNumber: 676,
                                                                 columnNumber: 27
                                                             }, this),
                                                             "移回已出貨"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 650,
+                                                        lineNumber: 672,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -995,20 +1025,20 @@ function AdminOrdersPage() {
                                                                 className: "w-4 h-4"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 662,
+                                                                lineNumber: 684,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " 封存訂單"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 658,
+                                                        lineNumber: 680,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 649,
+                                                lineNumber: 671,
                                                 columnNumber: 23
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1019,7 +1049,7 @@ function AdminOrdersPage() {
                                                         children: "實收總額"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 668,
+                                                        lineNumber: 690,
                                                         columnNumber: 23
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1030,25 +1060,25 @@ function AdminOrdersPage() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 669,
+                                                        lineNumber: 691,
                                                         columnNumber: 23
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 667,
+                                                lineNumber: 689,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 567,
+                                        lineNumber: 582,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 511,
+                                lineNumber: 526,
                                 columnNumber: 17
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1059,7 +1089,7 @@ function AdminOrdersPage() {
                                         children: "📦 本線商品明細："
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 677,
+                                        lineNumber: 699,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1078,7 +1108,7 @@ function AdminOrdersPage() {
                                                                 children: it.name
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 693,
+                                                                lineNumber: 715,
                                                                 columnNumber: 29
                                                             }, this),
                                                             it.selectedVariant && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1089,7 +1119,7 @@ function AdminOrdersPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 697,
+                                                                lineNumber: 719,
                                                                 columnNumber: 31
                                                             }, this),
                                                             isBought && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1097,7 +1127,7 @@ function AdminOrdersPage() {
                                                                 children: "✓ 已買到"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 702,
+                                                                lineNumber: 724,
                                                                 columnNumber: 31
                                                             }, this),
                                                             isFailed && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1105,13 +1135,13 @@ function AdminOrdersPage() {
                                                                 children: "✕ 缺貨"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 707,
+                                                                lineNumber: 729,
                                                                 columnNumber: 31
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 692,
+                                                        lineNumber: 714,
                                                         columnNumber: 27
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1131,49 +1161,49 @@ function AdminOrdersPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 715,
+                                                                lineNumber: 737,
                                                                 columnNumber: 29
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 713,
+                                                        lineNumber: 735,
                                                         columnNumber: 27
                                                     }, this)
                                                 ]
                                             }, idx, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 684,
+                                                lineNumber: 706,
                                                 columnNumber: 25
                                             }, this);
                                         })
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 678,
+                                        lineNumber: 700,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 676,
+                                lineNumber: 698,
                                 columnNumber: 17
                             }, this)
                         ]
                     }, g.key, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 497,
+                        lineNumber: 512,
                         columnNumber: 15
                     }, this);
                 })
             }, void 0, false, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 489,
+                lineNumber: 504,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/admin/orders/page.tsx",
-        lineNumber: 362,
+        lineNumber: 377,
         columnNumber: 5
     }, this);
 }

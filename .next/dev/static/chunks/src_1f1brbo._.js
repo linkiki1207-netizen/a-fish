@@ -47,7 +47,8 @@ function QuickAddPage() {
     const [cost, setCost] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
     const [stock, setStock] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('99');
     const [variants, setVariants] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
-    const [imageUrl, setImageUrl] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
+    const [imageUrls, setImageUrls] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
+    const [newImageUrlInput, setNewImageUrlInput] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
     const [description, setDescription] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
     const [uploadingImage, setUploadingImage] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [successMsg, setSuccessMsg] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
@@ -64,7 +65,8 @@ function QuickAddPage() {
     const [editStock, setEditStock] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
     const [editVariants, setEditVariants] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
     const [editDescription, setEditDescription] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
-    const [editImageUrl, setEditImageUrl] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
+    const [editImageUrls, setEditImageUrls] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
+    const [editNewUrlInput, setEditNewUrlInput] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
     const [updatingDraft, setUpdatingDraft] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "QuickAddPage.useEffect": ()=>{
@@ -78,7 +80,6 @@ function QuickAddPage() {
         });
         if (data && data.length > 0) {
             setBatches(data);
-            // 預設選取第一個「進行中」的批次
             const firstActive = data.find((b)=>!b.status || b.status === 'active');
             if (firstActive) {
                 setSelectedBatchId(firstActive.id);
@@ -165,9 +166,15 @@ function QuickAddPage() {
             const { data: publicURLData } = __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].storage.from('product-images').getPublicUrl(fileName);
             if (publicURLData?.publicUrl) {
                 if (isEditing) {
-                    setEditImageUrl(publicURLData.publicUrl);
+                    setEditImageUrls([
+                        ...editImageUrls,
+                        publicURLData.publicUrl
+                    ]);
                 } else {
-                    setImageUrl(publicURLData.publicUrl);
+                    setImageUrls([
+                        ...imageUrls,
+                        publicURLData.publicUrl
+                    ]);
                 }
             }
         } catch (err) {
@@ -175,6 +182,30 @@ function QuickAddPage() {
             alert('圖片壓縮或上傳發生錯誤');
         } finally{
             setUploadingImage(false);
+        }
+    };
+    const handleAddImageUrl = (isEditing = false)=>{
+        if (isEditing) {
+            if (!editNewUrlInput.trim()) return;
+            setEditImageUrls([
+                ...editImageUrls,
+                editNewUrlInput.trim()
+            ]);
+            setEditNewUrlInput('');
+        } else {
+            if (!newImageUrlInput.trim()) return;
+            setImageUrls([
+                ...imageUrls,
+                newImageUrlInput.trim()
+            ]);
+            setNewImageUrlInput('');
+        }
+    };
+    const handleRemoveImage = (indexToRemove, isEditing = false)=>{
+        if (isEditing) {
+            setEditImageUrls(editImageUrls.filter((_, idx)=>idx !== indexToRemove));
+        } else {
+            setImageUrls(imageUrls.filter((_, idx)=>idx !== indexToRemove));
         }
     };
     const handleCreateBatch = async ()=>{
@@ -204,7 +235,6 @@ function QuickAddPage() {
             alert(`新增批次失敗：${err.message || '未知錯誤'}`);
         }
     };
-    // 🟢 核心共用邏輯：根據批次狀態自動判斷分類與名稱
     const resolveTargetBatchInfo = (selectedBId, currentCategory)=>{
         if (currentCategory === 'spot') {
             return {
@@ -214,7 +244,6 @@ function QuickAddPage() {
             };
         }
         const selectedBatch = batches.find((b)=>b.id === selectedBId);
-        // 如果沒有選擇批次，或該批次狀態是 ended (已結束)
         if (!selectedBatch || selectedBatch.status === 'ended') {
             return {
                 category: 'spot',
@@ -222,14 +251,12 @@ function QuickAddPage() {
                 batchName: '現貨專區'
             };
         }
-        // 批次進行中，維持原本設定
         return {
             category: currentCategory,
             batchId: selectedBatch.id,
             batchName: selectedBatch.name
         };
     };
-    // 1. 直接正式上架
     const handleDirectPublish = async (e)=>{
         e.preventDefault();
         if (!name.trim()) {
@@ -249,7 +276,8 @@ function QuickAddPage() {
                 cost: Number(cost) || 0,
                 stock: finalStock,
                 variants: variantsArray,
-                image_url: imageUrl.trim() || null,
+                image_urls: imageUrls,
+                image_url: imageUrls.length > 0 ? imageUrls[0] : null,
                 description: description.trim() || null,
                 category: targetInfo.category,
                 batch_id: targetInfo.batchId,
@@ -268,7 +296,7 @@ function QuickAddPage() {
             setPrice('');
             setCost('');
             setVariants('');
-            setImageUrl('');
+            setImageUrls([]);
             setDescription('');
             setTimeout(()=>setSuccessMsg(''), 4000);
         } catch (err) {
@@ -278,7 +306,6 @@ function QuickAddPage() {
             setLoading(false);
         }
     };
-    // 2. 加入雲端草稿暫存
     const handleAddToDrafts = async ()=>{
         if (!name.trim()) {
             alert('請輸入商品名稱');
@@ -295,7 +322,8 @@ function QuickAddPage() {
             cost: Number(cost) || 0,
             stock: finalStock,
             variants: variantsArray,
-            image_url: imageUrl.trim() || null,
+            image_urls: imageUrls,
+            image_url: imageUrls.length > 0 ? imageUrls[0] : null,
             description: description.trim() || null,
             category: targetInfo.category,
             batch_id: targetInfo.batchId,
@@ -321,7 +349,7 @@ function QuickAddPage() {
             setPrice('');
             setCost('');
             setVariants('');
-            setImageUrl('');
+            setImageUrls([]);
             setDescription('');
             setTimeout(()=>setSuccessMsg(''), 3000);
         } catch (err) {
@@ -336,7 +364,16 @@ function QuickAddPage() {
         setEditStock(String(d.stock || 99));
         setEditVariants(Array.isArray(d.variants) ? d.variants.join('\n') : '');
         setEditDescription(d.description || '');
-        setEditImageUrl(d.image_url || '');
+        let imgs = [];
+        if (Array.isArray(d.image_urls) && d.image_urls.length > 0) {
+            imgs = d.image_urls.filter(Boolean);
+        } else if (d.image_url) {
+            imgs = [
+                d.image_url
+            ];
+        }
+        setEditImageUrls(imgs);
+        setEditNewUrlInput('');
     };
     const handleUpdateDraft = async (e)=>{
         e.preventDefault();
@@ -352,7 +389,8 @@ function QuickAddPage() {
                 stock: Number(editStock) || 99,
                 variants: variantsArray,
                 description: editDescription.trim() || null,
-                image_url: editImageUrl.trim() || null
+                image_urls: editImageUrls,
+                image_url: editImageUrls.length > 0 ? editImageUrls[0] : null
             };
             const { error } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('product_drafts').update(updatedFields).eq('id', editingDraft.id);
             if (error) throw error;
@@ -417,16 +455,19 @@ function QuickAddPage() {
         setBatchPublishing(true);
         try {
             const payload = itemsToPublish.map((d)=>{
-                // 如果草稿原本的 batch 在此時已經被結束，批次上架時也會自動轉為現貨專區
                 const batchObj = batches.find((b)=>b.id === d.batch_id);
                 const isEnded = batchObj && batchObj.status === 'ended';
+                const imgs = Array.isArray(d.image_urls) && d.image_urls.length > 0 ? d.image_urls : d.image_url ? [
+                    d.image_url
+                ] : [];
                 return {
                     name: d.name,
                     price: d.price,
                     cost: d.cost,
                     stock: isEnded ? d.stock || 99 : 9999,
                     variants: d.variants,
-                    image_url: d.image_url,
+                    image_urls: imgs,
+                    image_url: imgs.length > 0 ? imgs[0] : null,
                     description: d.description,
                     category: isEnded ? 'spot' : d.category,
                     batch_id: isEnded ? null : d.batch_id,
@@ -451,7 +492,6 @@ function QuickAddPage() {
             setBatchPublishing(false);
         }
     };
-    // 檢查目前選取的批次是否已結束
     const currentSelectedBatch = batches.find((b)=>b.id === selectedBatchId);
     const isCurrentBatchEnded = currentSelectedBatch && currentSelectedBatch.status === 'ended';
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -466,14 +506,14 @@ function QuickAddPage() {
                                 className: "w-5 h-5 text-emerald-400"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 510,
+                                lineNumber: 537,
                                 columnNumber: 11
                             }, this),
                             "全方位快速上架與雲端草稿同步"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 509,
+                        lineNumber: 536,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -481,13 +521,13 @@ function QuickAddPage() {
                         children: "在此填寫商品資料。若所選批次已結束，系統會自動轉為上架至「現貨專區」！"
                     }, void 0, false, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 513,
+                        lineNumber: 540,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                lineNumber: 508,
+                lineNumber: 535,
                 columnNumber: 7
             }, this),
             successMsg && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -497,7 +537,7 @@ function QuickAddPage() {
                         className: "w-4 h-4"
                     }, void 0, false, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 520,
+                        lineNumber: 547,
                         columnNumber: 11
                     }, this),
                     " ",
@@ -505,7 +545,7 @@ function QuickAddPage() {
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                lineNumber: 519,
+                lineNumber: 546,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -519,14 +559,14 @@ function QuickAddPage() {
                                 className: "w-4 h-4"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 534,
+                                lineNumber: 561,
                                 columnNumber: 11
                             }, this),
                             " ⚡ 快速上架填寫"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 526,
+                        lineNumber: 553,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -537,7 +577,7 @@ function QuickAddPage() {
                                 className: "w-4 h-4"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 544,
+                                lineNumber: 571,
                                 columnNumber: 11
                             }, this),
                             " 📦 雲端草稿暫存區",
@@ -546,19 +586,19 @@ function QuickAddPage() {
                                 children: drafts.length
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 546,
+                                lineNumber: 573,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 536,
+                        lineNumber: 563,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                lineNumber: 525,
+                lineNumber: 552,
                 columnNumber: 7
             }, this),
             topTab === 'form' ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -574,14 +614,14 @@ function QuickAddPage() {
                                         className: "w-4 h-4 text-emerald-400"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 557,
+                                        lineNumber: 584,
                                         columnNumber: 15
                                     }, this),
                                     " 1. 選擇上架專區"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 556,
+                                lineNumber: 583,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -594,7 +634,7 @@ function QuickAddPage() {
                                         children: "🔥 限時下單"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 560,
+                                        lineNumber: 587,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -604,7 +644,7 @@ function QuickAddPage() {
                                         children: "✈️ 各國連線"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 571,
+                                        lineNumber: 598,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -614,19 +654,19 @@ function QuickAddPage() {
                                         children: "📦 現貨專區"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 582,
+                                        lineNumber: 609,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 559,
+                                lineNumber: 586,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 555,
+                        lineNumber: 582,
                         columnNumber: 11
                     }, this),
                     activeTab !== 'spot' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -640,7 +680,7 @@ function QuickAddPage() {
                                         children: "📌 2. 選擇進行中的所屬批次"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 599,
+                                        lineNumber: 626,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -652,7 +692,7 @@ function QuickAddPage() {
                                                 className: "w-3.5 h-3.5"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                lineNumber: 607,
+                                                lineNumber: 634,
                                                 columnNumber: 19
                                             }, this),
                                             " ",
@@ -660,13 +700,13 @@ function QuickAddPage() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 602,
+                                        lineNumber: 629,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 598,
+                                lineNumber: 625,
                                 columnNumber: 15
                             }, this),
                             showNewBatchInput && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -680,7 +720,7 @@ function QuickAddPage() {
                                         className: "flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 613,
+                                        lineNumber: 640,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -690,13 +730,13 @@ function QuickAddPage() {
                                         children: "確認建立"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 620,
+                                        lineNumber: 647,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 612,
+                                lineNumber: 639,
                                 columnNumber: 17
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -708,7 +748,7 @@ function QuickAddPage() {
                                     children: "目前尚無批次，請點擊上方「建立新批次」"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                    lineNumber: 636,
+                                    lineNumber: 663,
                                     columnNumber: 19
                                 }, this) : batches.map((b)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
                                         value: b.id,
@@ -719,12 +759,12 @@ function QuickAddPage() {
                                         ]
                                     }, b.id, true, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 639,
+                                        lineNumber: 666,
                                         columnNumber: 21
                                     }, this))
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 630,
+                                lineNumber: 657,
                                 columnNumber: 15
                             }, this),
                             isCurrentBatchEnded && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -734,7 +774,7 @@ function QuickAddPage() {
                                         className: "w-4 h-4 shrink-0"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 649,
+                                        lineNumber: 675,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -744,26 +784,26 @@ function QuickAddPage() {
                                                 children: "「現貨專區」"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                lineNumber: 650,
+                                                lineNumber: 676,
                                                 columnNumber: 50
                                             }, this),
                                             "。"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 650,
+                                        lineNumber: 676,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 648,
+                                lineNumber: 674,
                                 columnNumber: 17
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 597,
+                        lineNumber: 624,
                         columnNumber: 13
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -779,14 +819,14 @@ function QuickAddPage() {
                                                 className: "w-3.5 h-3.5 text-emerald-400"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                lineNumber: 659,
+                                                lineNumber: 685,
                                                 columnNumber: 17
                                             }, this),
                                             " 商品名稱"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 658,
+                                        lineNumber: 684,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -798,13 +838,13 @@ function QuickAddPage() {
                                         className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 661,
+                                        lineNumber: 687,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 657,
+                                lineNumber: 683,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -820,14 +860,14 @@ function QuickAddPage() {
                                                         className: "w-3.5 h-3.5 text-emerald-400"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                        lineNumber: 674,
+                                                        lineNumber: 700,
                                                         columnNumber: 19
                                                     }, this),
                                                     " 售價 (NT$)"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                lineNumber: 673,
+                                                lineNumber: 699,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -839,13 +879,13 @@ function QuickAddPage() {
                                                 className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                lineNumber: 676,
+                                                lineNumber: 702,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 672,
+                                        lineNumber: 698,
                                         columnNumber: 15
                                     }, this),
                                     (activeTab === 'spot' || isCurrentBatchEnded) && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -858,14 +898,14 @@ function QuickAddPage() {
                                                         className: "w-3.5 h-3.5 text-slate-400"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                        lineNumber: 688,
+                                                        lineNumber: 714,
                                                         columnNumber: 21
                                                     }, this),
                                                     " 現貨庫存"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                lineNumber: 687,
+                                                lineNumber: 713,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -875,25 +915,25 @@ function QuickAddPage() {
                                                 className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                lineNumber: 690,
+                                                lineNumber: 716,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 686,
+                                        lineNumber: 712,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 671,
+                                lineNumber: 697,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 656,
+                        lineNumber: 682,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -907,7 +947,7 @@ function QuickAddPage() {
                                         children: "商品規格 (每行輸入一個規格)"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 703,
+                                        lineNumber: 729,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -915,13 +955,13 @@ function QuickAddPage() {
                                         children: "換行即代表不同規格項目"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 704,
+                                        lineNumber: 730,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 702,
+                                lineNumber: 728,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -932,13 +972,13 @@ function QuickAddPage() {
                                 className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400 resize-none font-mono"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 706,
+                                lineNumber: 732,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 701,
+                        lineNumber: 727,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -951,14 +991,14 @@ function QuickAddPage() {
                                         className: "w-3.5 h-3.5 text-emerald-400"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 717,
+                                        lineNumber: 743,
                                         columnNumber: 15
                                     }, this),
                                     " 商品詳細說明 (選填)"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 716,
+                                lineNumber: 742,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -969,17 +1009,17 @@ function QuickAddPage() {
                                 className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400 resize-none"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 719,
+                                lineNumber: 745,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 715,
+                        lineNumber: 741,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "space-y-2",
+                        className: "space-y-2.5",
                         children: [
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                 className: "text-xs font-bold text-slate-300 flex items-center gap-1.5",
@@ -988,34 +1028,34 @@ function QuickAddPage() {
                                         className: "w-3.5 h-3.5 text-emerald-400"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 730,
+                                        lineNumber: 757,
                                         columnNumber: 15
                                     }, this),
-                                    " 商品圖片"
+                                    " 商品照片管理 (可新增多張)"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 729,
+                                lineNumber: 756,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "flex flex-col sm:flex-row gap-3 items-center",
                                 children: [
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                        className: "w-full sm:w-auto px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border border-slate-700",
+                                        className: "w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border border-slate-700",
                                         children: [
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$upload$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Upload$3e$__["Upload"], {
                                                 className: "w-4 h-4 text-emerald-400"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                lineNumber: 735,
+                                                lineNumber: 762,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                children: uploadingImage ? '正在自動壓縮並上傳...' : '從相簿選擇圖片'
+                                                children: uploadingImage ? '壓縮上傳中...' : '從相簿選擇圖片'
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                lineNumber: 736,
+                                                lineNumber: 763,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1026,65 +1066,110 @@ function QuickAddPage() {
                                                 className: "hidden"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                lineNumber: 737,
+                                                lineNumber: 764,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 734,
+                                        lineNumber: 761,
                                         columnNumber: 15
                                     }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                        type: "url",
-                                        placeholder: "或直接貼上圖片網址 https://...",
-                                        value: imageUrl,
-                                        onChange: (e)=>setImageUrl(e.target.value),
-                                        className: "flex-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
-                                    }, void 0, false, {
-                                        fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 746,
-                                        columnNumber: 15
-                                    }, this)
-                                ]
-                            }, void 0, true, {
-                                fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 733,
-                                columnNumber: 13
-                            }, this),
-                            imageUrl && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "mt-2 flex items-center gap-3 p-2 bg-slate-950 rounded-xl border border-slate-800",
-                                children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
-                                        src: imageUrl,
-                                        alt: "預覽",
-                                        className: "w-12 h-12 rounded-lg object-cover border border-slate-700"
-                                    }, void 0, false, {
-                                        fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 757,
-                                        columnNumber: 17
-                                    }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                        className: "text-[11px] text-emerald-400 truncate flex-1",
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "flex-1 w-full flex gap-2",
                                         children: [
-                                            "已成功載入圖片：",
-                                            imageUrl
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                type: "url",
+                                                placeholder: "或貼上圖片網址 https://...",
+                                                value: newImageUrlInput,
+                                                onChange: (e)=>setNewImageUrlInput(e.target.value),
+                                                className: "flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                lineNumber: 774,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                type: "button",
+                                                onClick: ()=>handleAddImageUrl(false),
+                                                className: "px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap",
+                                                children: "+ 新增"
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                lineNumber: 781,
+                                                columnNumber: 17
+                                            }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 758,
-                                        columnNumber: 17
+                                        lineNumber: 773,
+                                        columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 756,
+                                lineNumber: 760,
+                                columnNumber: 13
+                            }, this),
+                            imageUrls.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "grid grid-cols-4 sm:grid-cols-6 gap-2.5 pt-2",
+                                children: imageUrls.map((url, index)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "relative group bg-slate-950 border border-slate-800 rounded-xl overflow-hidden h-20",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
+                                                src: url,
+                                                alt: `預覽 ${index}`,
+                                                className: "w-full h-full object-cover"
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                lineNumber: 795,
+                                                columnNumber: 21
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                type: "button",
+                                                onClick: ()=>handleRemoveImage(index, false),
+                                                className: "absolute top-1 right-1 bg-rose-600 hover:bg-rose-500 text-white p-1 rounded-full shadow transition cursor-pointer",
+                                                title: "刪除此張照片",
+                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$x$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__X$3e$__["X"], {
+                                                    className: "w-3 h-3"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                    lineNumber: 802,
+                                                    columnNumber: 23
+                                                }, this)
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                lineNumber: 796,
+                                                columnNumber: 21
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                className: "absolute bottom-1 left-1 bg-black/60 text-white text-[9px] px-1.5 rounded",
+                                                children: [
+                                                    "#",
+                                                    index + 1,
+                                                    " ",
+                                                    index === 0 ? '(主圖)' : ''
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                lineNumber: 804,
+                                                columnNumber: 21
+                                            }, this)
+                                        ]
+                                    }, index, true, {
+                                        fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                        lineNumber: 794,
+                                        columnNumber: 19
+                                    }, this))
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                lineNumber: 792,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 728,
+                        lineNumber: 755,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1100,7 +1185,7 @@ function QuickAddPage() {
                                         className: "w-4 h-4"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 770,
+                                        lineNumber: 820,
                                         columnNumber: 15
                                     }, this),
                                     " ",
@@ -1108,7 +1193,7 @@ function QuickAddPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 764,
+                                lineNumber: 814,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1121,26 +1206,26 @@ function QuickAddPage() {
                                         className: "w-4 h-4"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 778,
+                                        lineNumber: 828,
                                         columnNumber: 15
                                     }, this),
                                     " 📦 加入雲端草稿暫存"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 772,
+                                lineNumber: 822,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 763,
+                        lineNumber: 813,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                lineNumber: 554,
+                lineNumber: 581,
                 columnNumber: 9
             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl",
@@ -1160,7 +1245,7 @@ function QuickAddPage() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 786,
+                                        lineNumber: 836,
                                         columnNumber: 15
                                     }, this),
                                     drafts.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1170,13 +1255,13 @@ function QuickAddPage() {
                                         children: selectedDraftIds.length === drafts.length ? '取消全選' : '全選所有暫存'
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 790,
+                                        lineNumber: 840,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 785,
+                                lineNumber: 835,
                                 columnNumber: 13
                             }, this),
                             drafts.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1185,13 +1270,13 @@ function QuickAddPage() {
                                 children: "清空全部"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 800,
+                                lineNumber: 850,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 784,
+                        lineNumber: 834,
                         columnNumber: 11
                     }, this),
                     loadingDrafts ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1199,7 +1284,7 @@ function QuickAddPage() {
                         children: "同步雲端草稿中..."
                     }, void 0, false, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 810,
+                        lineNumber: 860,
                         columnNumber: 13
                     }, this) : drafts.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "text-center py-16 text-xs text-slate-500 space-y-2",
@@ -1208,20 +1293,20 @@ function QuickAddPage() {
                                 className: "w-8 h-8 text-slate-600 mx-auto"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 813,
+                                lineNumber: 863,
                                 columnNumber: 15
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                 children: "目前雲端暫存區是空的，請先至「⚡ 快速上架填寫」加入商品！"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 814,
+                                lineNumber: 864,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 812,
+                        lineNumber: 862,
                         columnNumber: 13
                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "space-y-3",
@@ -1230,6 +1315,9 @@ function QuickAddPage() {
                                 className: "space-y-2.5 max-h-[55vh] overflow-y-auto pr-1",
                                 children: drafts.map((d, index)=>{
                                     const isChecked = selectedDraftIds.includes(d.id);
+                                    const imgs = Array.isArray(d.image_urls) && d.image_urls.length > 0 ? d.image_urls : d.image_url ? [
+                                        d.image_url
+                                    ] : [];
                                     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         onClick: ()=>toggleSelectDraft(d.id),
                                         className: `border rounded-2xl p-3.5 flex items-center justify-between gap-3 transition cursor-pointer ${isChecked ? 'bg-emerald-950/20 border-emerald-500/50 shadow-md' : 'bg-slate-950 border-slate-800 opacity-70 hover:opacity-100'}`,
@@ -1248,18 +1336,18 @@ function QuickAddPage() {
                                                             className: "w-5 h-5 text-emerald-400"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                            lineNumber: 842,
+                                                            lineNumber: 893,
                                                             columnNumber: 29
                                                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$square$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Square$3e$__["Square"], {
                                                             className: "w-5 h-5 text-slate-600"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                            lineNumber: 844,
+                                                            lineNumber: 895,
                                                             columnNumber: 29
                                                         }, this)
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                        lineNumber: 833,
+                                                        lineNumber: 884,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1270,23 +1358,43 @@ function QuickAddPage() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                        lineNumber: 848,
+                                                        lineNumber: 899,
                                                         columnNumber: 25
                                                     }, this),
-                                                    d.image_url ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
-                                                        src: d.image_url,
-                                                        alt: d.name,
-                                                        className: "w-11 h-11 rounded-xl object-cover border border-slate-800"
-                                                    }, void 0, false, {
+                                                    imgs.length > 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "relative",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
+                                                                src: imgs[0],
+                                                                alt: d.name,
+                                                                className: "w-11 h-11 rounded-xl object-cover border border-slate-800"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                                lineNumber: 903,
+                                                                columnNumber: 29
+                                                            }, this),
+                                                            imgs.length > 1 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                className: "absolute -bottom-1.5 -right-1.5 bg-emerald-500 text-slate-950 font-bold text-[9px] px-1 py-0.5 rounded-full",
+                                                                children: [
+                                                                    imgs.length,
+                                                                    "張"
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                                lineNumber: 905,
+                                                                columnNumber: 31
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                        lineNumber: 851,
+                                                        lineNumber: 902,
                                                         columnNumber: 27
                                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                         className: "w-11 h-11 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 text-[10px]",
                                                         children: "無圖"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                        lineNumber: 853,
+                                                        lineNumber: 911,
                                                         columnNumber: 27
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1296,7 +1404,7 @@ function QuickAddPage() {
                                                                 children: d.name
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                                lineNumber: 856,
+                                                                lineNumber: 914,
                                                                 columnNumber: 27
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1310,14 +1418,14 @@ function QuickAddPage() {
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                                        lineNumber: 858,
+                                                                        lineNumber: 916,
                                                                         columnNumber: 29
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                         children: "｜"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                                        lineNumber: 859,
+                                                                        lineNumber: 917,
                                                                         columnNumber: 29
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1325,25 +1433,25 @@ function QuickAddPage() {
                                                                         children: d.batch_name
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                                        lineNumber: 860,
+                                                                        lineNumber: 918,
                                                                         columnNumber: 29
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                                lineNumber: 857,
+                                                                lineNumber: 915,
                                                                 columnNumber: 27
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                        lineNumber: 855,
+                                                        lineNumber: 913,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                lineNumber: 832,
+                                                lineNumber: 883,
                                                 columnNumber: 23
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1361,14 +1469,14 @@ function QuickAddPage() {
                                                                 className: "w-3.5 h-3.5"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                                lineNumber: 874,
+                                                                lineNumber: 932,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " 編輯"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                        lineNumber: 866,
+                                                        lineNumber: 924,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1382,30 +1490,30 @@ function QuickAddPage() {
                                                             className: "w-4 h-4"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                            lineNumber: 884,
+                                                            lineNumber: 942,
                                                             columnNumber: 27
                                                         }, this)
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                        lineNumber: 876,
+                                                        lineNumber: 934,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                lineNumber: 865,
+                                                lineNumber: 923,
                                                 columnNumber: 23
                                             }, this)
                                         ]
                                     }, d.id, true, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 823,
+                                        lineNumber: 874,
                                         columnNumber: 21
                                     }, this);
                                 })
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 818,
+                                lineNumber: 868,
                                 columnNumber: 15
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1418,26 +1526,26 @@ function QuickAddPage() {
                                         className: "w-4 h-4"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 898,
+                                        lineNumber: 956,
                                         columnNumber: 17
                                     }, this),
                                     batchPublishing ? '上架中...' : `🚀 一鍵批次上架已勾選的 ${selectedDraftIds.length} 項商品`
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                lineNumber: 892,
+                                lineNumber: 950,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                        lineNumber: 817,
+                        lineNumber: 867,
                         columnNumber: 13
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                lineNumber: 783,
+                lineNumber: 833,
                 columnNumber: 9
             }, this),
             editingDraft && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1456,14 +1564,14 @@ function QuickAddPage() {
                                             className: "w-4 h-4 text-emerald-400"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                            lineNumber: 912,
+                                            lineNumber: 970,
                                             columnNumber: 17
                                         }, this),
-                                        "編輯草稿商品"
+                                        "編輯草稿商品與多張照片"
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                    lineNumber: 911,
+                                    lineNumber: 969,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1474,18 +1582,18 @@ function QuickAddPage() {
                                         className: "w-5 h-5"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                        lineNumber: 916,
+                                        lineNumber: 974,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                    lineNumber: 915,
+                                    lineNumber: 973,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                            lineNumber: 910,
+                            lineNumber: 968,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1499,7 +1607,7 @@ function QuickAddPage() {
                                             children: "商品名稱"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                            lineNumber: 922,
+                                            lineNumber: 980,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1510,13 +1618,13 @@ function QuickAddPage() {
                                             className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                            lineNumber: 923,
+                                            lineNumber: 981,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                    lineNumber: 921,
+                                    lineNumber: 979,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1530,7 +1638,7 @@ function QuickAddPage() {
                                                     children: "售價 (NT$)"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                    lineNumber: 934,
+                                                    lineNumber: 992,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1541,13 +1649,13 @@ function QuickAddPage() {
                                                     className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                    lineNumber: 935,
+                                                    lineNumber: 993,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                            lineNumber: 933,
+                                            lineNumber: 991,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1558,7 +1666,7 @@ function QuickAddPage() {
                                                     children: "庫存"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                    lineNumber: 944,
+                                                    lineNumber: 1002,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1569,19 +1677,19 @@ function QuickAddPage() {
                                                     className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                    lineNumber: 945,
+                                                    lineNumber: 1003,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                            lineNumber: 943,
+                                            lineNumber: 1001,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                    lineNumber: 932,
+                                    lineNumber: 990,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1595,7 +1703,7 @@ function QuickAddPage() {
                                                     children: "商品規格 (每行輸入一個規格)"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                    lineNumber: 957,
+                                                    lineNumber: 1015,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1603,13 +1711,13 @@ function QuickAddPage() {
                                                     children: "換行即代表不同規格項目"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                    lineNumber: 958,
+                                                    lineNumber: 1016,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                            lineNumber: 956,
+                                            lineNumber: 1014,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -1619,13 +1727,13 @@ function QuickAddPage() {
                                             className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400 resize-none font-mono"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                            lineNumber: 960,
+                                            lineNumber: 1018,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                    lineNumber: 955,
+                                    lineNumber: 1013,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1636,7 +1744,7 @@ function QuickAddPage() {
                                             children: "商品詳細說明 (選填)"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                            lineNumber: 969,
+                                            lineNumber: 1027,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -1646,43 +1754,46 @@ function QuickAddPage() {
                                             className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400 resize-none"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                            lineNumber: 970,
+                                            lineNumber: 1028,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                    lineNumber: 968,
+                                    lineNumber: 1026,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "space-y-1.5",
+                                    className: "space-y-2",
                                     children: [
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                             className: "text-xs font-bold text-slate-300",
-                                            children: "圖片網址"
+                                            children: "商品照片管理 (可新增多張)"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                            lineNumber: 979,
+                                            lineNumber: 1038,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                            className: "flex gap-2",
+                                            className: "flex flex-col sm:flex-row gap-2 items-center",
                                             children: [
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                                    type: "url",
-                                                    value: editImageUrl,
-                                                    onChange: (e)=>setEditImageUrl(e.target.value),
-                                                    className: "flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
-                                                }, void 0, false, {
-                                                    fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                    lineNumber: 981,
-                                                    columnNumber: 19
-                                                }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                    className: "px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer border border-slate-700",
+                                                    className: "w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border border-slate-700",
                                                     children: [
-                                                        "上傳",
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$upload$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Upload$3e$__["Upload"], {
+                                                            className: "w-4 h-4 text-emerald-400"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                            lineNumber: 1042,
+                                                            columnNumber: 21
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                            children: "從相簿選擇圖片"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                            lineNumber: 1043,
+                                                            columnNumber: 21
+                                                        }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
                                                             type: "file",
                                                             accept: "image/*",
@@ -1690,40 +1801,116 @@ function QuickAddPage() {
                                                             className: "hidden"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                            lineNumber: 989,
+                                                            lineNumber: 1044,
                                                             columnNumber: 21
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                                    lineNumber: 987,
+                                                    lineNumber: 1041,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "flex-1 w-full flex gap-2",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                            type: "url",
+                                                            placeholder: "貼上圖片網址 https://...",
+                                                            value: editNewUrlInput,
+                                                            onChange: (e)=>setEditNewUrlInput(e.target.value),
+                                                            className: "flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                            lineNumber: 1053,
+                                                            columnNumber: 21
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                            type: "button",
+                                                            onClick: ()=>handleAddImageUrl(true),
+                                                            className: "px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap",
+                                                            children: "+ 新增"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                            lineNumber: 1060,
+                                                            columnNumber: 21
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                    lineNumber: 1052,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                            lineNumber: 980,
+                                            lineNumber: 1040,
                                             columnNumber: 17
                                         }, this),
-                                        editImageUrl && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
-                                            src: editImageUrl,
-                                            alt: "預覽",
-                                            className: "w-12 h-12 rounded-lg object-cover border border-slate-700 mt-2"
+                                        editImageUrls.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "grid grid-cols-4 gap-2 pt-2",
+                                            children: editImageUrls.map((url, index)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "relative group bg-slate-950 border border-slate-800 rounded-xl overflow-hidden h-20",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
+                                                            src: url,
+                                                            alt: `預覽 ${index}`,
+                                                            className: "w-full h-full object-cover"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                            lineNumber: 1074,
+                                                            columnNumber: 25
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                            type: "button",
+                                                            onClick: ()=>handleRemoveImage(index, true),
+                                                            className: "absolute top-1 right-1 bg-rose-600 hover:bg-rose-500 text-white p-1 rounded-full shadow transition cursor-pointer",
+                                                            title: "刪除此張照片",
+                                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$x$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__X$3e$__["X"], {
+                                                                className: "w-3 h-3"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                                lineNumber: 1081,
+                                                                columnNumber: 27
+                                                            }, this)
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                            lineNumber: 1075,
+                                                            columnNumber: 25
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                            className: "absolute bottom-1 left-1 bg-black/60 text-white text-[9px] px-1.5 rounded",
+                                                            children: [
+                                                                "#",
+                                                                index + 1,
+                                                                " ",
+                                                                index === 0 ? '(主圖)' : ''
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                            lineNumber: 1083,
+                                                            columnNumber: 25
+                                                        }, this)
+                                                    ]
+                                                }, index, true, {
+                                                    fileName: "[project]/src/app/admin/quick-add/page.tsx",
+                                                    lineNumber: 1073,
+                                                    columnNumber: 23
+                                                }, this))
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                            lineNumber: 998,
+                                            lineNumber: 1071,
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                    lineNumber: 978,
+                                    lineNumber: 1037,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                            lineNumber: 920,
+                            lineNumber: 978,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1736,7 +1923,7 @@ function QuickAddPage() {
                                     children: "取消"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                    lineNumber: 1004,
+                                    lineNumber: 1094,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1746,34 +1933,34 @@ function QuickAddPage() {
                                     children: updatingDraft ? '儲存中...' : '儲存修改'
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                                    lineNumber: 1011,
+                                    lineNumber: 1101,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                            lineNumber: 1003,
+                            lineNumber: 1093,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                    lineNumber: 909,
+                    lineNumber: 967,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/app/admin/quick-add/page.tsx",
-                lineNumber: 908,
+                lineNumber: 966,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/admin/quick-add/page.tsx",
-        lineNumber: 507,
+        lineNumber: 534,
         columnNumber: 5
     }, this);
 }
-_s(QuickAddPage, "Z9mKEuE8d0+rqR6XO8ySwAarklc=");
+_s(QuickAddPage, "NkuTSQCaNlqjYI/QC5pC1tVyE3k=");
 _c = QuickAddPage;
 var _c;
 __turbopack_context__.k.register(_c, "QuickAddPage");

@@ -3,7 +3,10 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const baseUrl = 'https://a-fish.vercel.app'
+  
+  // 🟢 動態抓取當前發起請求的主機網址（本機會是 http://localhost:3000，上線會是 https://a-fish.vercel.app）
+  const urlObj = new URL(request.url)
+  const baseUrl = `${urlObj.protocol}//${urlObj.host}`
 
   if (!code) {
     return NextResponse.redirect(`${baseUrl}/?error=no_code`)
@@ -53,7 +56,7 @@ export async function GET(request: Request) {
       pictureUrl: profileData.pictureUrl || '',
     }
 
-    // 3. 直接跳回【買家前台首頁】，並帶入使用者資料
+    // 3. 帶入使用者資料跳回首頁
     const userParam = encodeURIComponent(JSON.stringify(lineUser))
     return NextResponse.redirect(`${baseUrl}/?line_user=${userParam}`)
   } catch (err: any) {

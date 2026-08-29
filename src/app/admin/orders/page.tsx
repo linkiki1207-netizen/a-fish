@@ -213,6 +213,21 @@ export default function AdminOrdersPage() {
     }
   }
 
+  // 🟢 新增：將訂單從「待入帳」退回「進行中」
+  const handleRevertToActive = async (orderIds: string[]) => {
+    if (!confirm('確定要將此訂單退回「進行中」嗎？')) return
+    const { error } = await supabase
+      .from('orders')
+      .update({ pay_status: 'unpaid' })
+      .in('id', orderIds)
+
+    if (!error) {
+      fetchData()
+    } else {
+      alert('退回失敗')
+    }
+  }
+
   const copy711ShippingInfo = (g: typeof groupList[0]) => {
     const text = `【7-11 交貨便 0元純取貨】\n收件人：${g.buyer_name || g.line_name}\n手機：${g.buyer_phone || '未提供'}\n門市：${g.store_name || '未提供'}`
     navigator.clipboard.writeText(text)
@@ -578,6 +593,14 @@ export default function AdminOrdersPage() {
 
                     {orderTab === 'reported' && (
                       <>
+                        {/* 🟢 新增：待入帳頁籤中的「退回進行中」按鈕 */}
+                        <button
+                          onClick={() => handleRevertToActive(g.order_ids)}
+                          className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border border-slate-700"
+                        >
+                          <RotateCcw className="w-4 h-4 text-amber-400" /> 退回進行中
+                        </button>
+
                         <button
                           onClick={() => copyPaymentNotice(g)}
                           className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-2 cursor-pointer"
@@ -596,7 +619,6 @@ export default function AdminOrdersPage() {
 
                     {orderTab === 'shipping' && (
                       <>
-                        {/* 🟢 已將此處的「復原」改為「移回待入帳」 */}
                         <button
                           onClick={() => handleRevertPayment(g.order_ids)}
                           className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border border-slate-700"

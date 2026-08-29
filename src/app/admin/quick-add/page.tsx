@@ -18,6 +18,7 @@ interface DraftProduct {
   stock: number
   variants: string[]
   image_url: string | null
+  image_urls?: string[] | null
   description: string | null
   category: 'flash' | 'batch' | 'spot'
   batch_id: string | null
@@ -40,7 +41,8 @@ export default function QuickAddPage() {
   const [cost, setCost] = useState('')
   const [stock, setStock] = useState('99')
   const [variants, setVariants] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
+  const [imageUrls, setImageUrls] = useState<string[]>([])
+  const [newImageUrlInput, setNewImageUrlInput] = useState('')
   const [description, setDescription] = useState('')
   
   const [uploadingImage, setUploadingImage] = useState(false)
@@ -60,7 +62,8 @@ export default function QuickAddPage() {
   const [editStock, setEditStock] = useState('')
   const [editVariants, setEditVariants] = useState('')
   const [editDescription, setEditDescription] = useState('')
-  const [editImageUrl, setEditImageUrl] = useState('')
+  const [editImageUrls, setEditImageUrls] = useState<string[]>([])
+  const [editNewUrlInput, setEditNewUrlInput] = useState('')
   const [updatingDraft, setUpdatingDraft] = useState(false)
 
   useEffect(() => {
@@ -76,7 +79,6 @@ export default function QuickAddPage() {
 
     if (data && data.length > 0) {
       setBatches(data)
-      // 預設選取第一個「進行中」的批次
       const firstActive = data.find(b => !b.status || b.status === 'active')
       if (firstActive) {
         setSelectedBatchId(firstActive.id)
@@ -185,9 +187,9 @@ export default function QuickAddPage() {
 
       if (publicURLData?.publicUrl) {
         if (isEditing) {
-          setEditImageUrl(publicURLData.publicUrl)
+          setEditImageUrls([...editImageUrls, publicURLData.publicUrl])
         } else {
-          setImageUrl(publicURLData.publicUrl)
+          setImageUrls([...imageUrls, publicURLData.publicUrl])
         }
       }
     } catch (err: any) {
@@ -195,6 +197,26 @@ export default function QuickAddPage() {
       alert('圖片壓縮或上傳發生錯誤')
     } finally {
       setUploadingImage(false)
+    }
+  }
+
+  const handleAddImageUrl = (isEditing = false) => {
+    if (isEditing) {
+      if (!editNewUrlInput.trim()) return
+      setEditImageUrls([...editImageUrls, editNewUrlInput.trim()])
+      setEditNewUrlInput('')
+    } else {
+      if (!newImageUrlInput.trim()) return
+      setImageUrls([...imageUrls, newImageUrlInput.trim()])
+      setNewImageUrlInput('')
+    }
+  }
+
+  const handleRemoveImage = (indexToRemove: number, isEditing = false) => {
+    if (isEditing) {
+      setEditImageUrls(editImageUrls.filter((_, idx) => idx !== indexToRemove))
+    } else {
+      setImageUrls(imageUrls.filter((_, idx) => idx !== indexToRemove))
     }
   }
 
@@ -224,15 +246,12 @@ export default function QuickAddPage() {
     }
   }
 
-  // 🟢 核心共用邏輯：根據批次狀態自動判斷分類與名稱
   const resolveTargetBatchInfo = (selectedBId: string, currentCategory: 'flash' | 'batch' | 'spot') => {
     if (currentCategory === 'spot') {
       return { category: 'spot' as const, batchId: null, batchName: '現貨專區' }
     }
 
     const selectedBatch = batches.find(b => b.id === selectedBId)
-
-    // 如果沒有選擇批次，或該批次狀態是 ended (已結束)
     if (!selectedBatch || selectedBatch.status === 'ended') {
       return {
         category: 'spot' as const,
@@ -241,7 +260,6 @@ export default function QuickAddPage() {
       }
     }
 
-    // 批次進行中，維持原本設定
     return {
       category: currentCategory,
       batchId: selectedBatch.id,
@@ -249,7 +267,6 @@ export default function QuickAddPage() {
     }
   }
 
-  // 1. 直接正式上架
   const handleDirectPublish = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
@@ -272,7 +289,8 @@ export default function QuickAddPage() {
         cost: Number(cost) || 0,
         stock: finalStock,
         variants: variantsArray,
-        image_url: imageUrl.trim() || null,
+        image_urls: imageUrls,
+        image_url: imageUrls.length > 0 ? imageUrls[0] : null,
         description: description.trim() || null,
         category: targetInfo.category,
         batch_id: targetInfo.batchId,
@@ -292,7 +310,7 @@ export default function QuickAddPage() {
       setPrice('')
       setCost('')
       setVariants('')
-      setImageUrl('')
+      setImageUrls([])
       setDescription('')
 
       setTimeout(() => setSuccessMsg(''), 4000)
@@ -304,7 +322,6 @@ export default function QuickAddPage() {
     }
   }
 
-  // 2. 加入雲端草稿暫存
   const handleAddToDrafts = async () => {
     if (!name.trim()) {
       alert('請輸入商品名稱')
@@ -324,7 +341,8 @@ export default function QuickAddPage() {
       cost: Number(cost) || 0,
       stock: finalStock,
       variants: variantsArray,
-      image_url: imageUrl.trim() || null,
+      image_urls: imageUrls,
+      image_url: imageUrls.length > 0 ? imageUrls[0] : null,
       description: description.trim() || null,
       category: targetInfo.category,
       batch_id: targetInfo.batchId,
@@ -350,7 +368,7 @@ export default function QuickAddPage() {
       setPrice('')
       setCost('')
       setVariants('')
-      setImageUrl('')
+      setImageUrls([])
       setDescription('')
 
       setTimeout(() => setSuccessMsg(''), 3000)
@@ -367,7 +385,15 @@ export default function QuickAddPage() {
     setEditStock(String(d.stock || 99))
     setEditVariants(Array.isArray(d.variants) ? d.variants.join('\n') : '')
     setEditDescription(d.description || '')
-    setEditImageUrl(d.image_url || '')
+    
+    let imgs: string[] = []
+    if (Array.isArray(d.image_urls) && d.image_urls.length > 0) {
+      imgs = d.image_urls.filter(Boolean)
+    } else if (d.image_url) {
+      imgs = [d.image_url]
+    }
+    setEditImageUrls(imgs)
+    setEditNewUrlInput('')
   }
 
   const handleUpdateDraft = async (e: React.FormEvent) => {
@@ -386,7 +412,8 @@ export default function QuickAddPage() {
         stock: Number(editStock) || 99,
         variants: variantsArray,
         description: editDescription.trim() || null,
-        image_url: editImageUrl.trim() || null,
+        image_urls: editImageUrls,
+        image_url: editImageUrls.length > 0 ? editImageUrls[0] : null,
       }
 
       const { error } = await supabase
@@ -458,9 +485,9 @@ export default function QuickAddPage() {
     setBatchPublishing(true)
     try {
       const payload = itemsToPublish.map(d => {
-        // 如果草稿原本的 batch 在此時已經被結束，批次上架時也會自動轉為現貨專區
         const batchObj = batches.find(b => b.id === d.batch_id)
         const isEnded = batchObj && batchObj.status === 'ended'
+        const imgs = Array.isArray(d.image_urls) && d.image_urls.length > 0 ? d.image_urls : (d.image_url ? [d.image_url] : [])
 
         return {
           name: d.name,
@@ -468,7 +495,8 @@ export default function QuickAddPage() {
           cost: d.cost,
           stock: isEnded ? (d.stock || 99) : 9999,
           variants: d.variants,
-          image_url: d.image_url,
+          image_urls: imgs,
+          image_url: imgs.length > 0 ? imgs[0] : null,
           description: d.description,
           category: isEnded ? 'spot' : d.category,
           batch_id: isEnded ? null : d.batch_id,
@@ -499,7 +527,6 @@ export default function QuickAddPage() {
     }
   }
 
-  // 檢查目前選取的批次是否已結束
   const currentSelectedBatch = batches.find(b => b.id === selectedBatchId)
   const isCurrentBatchEnded = currentSelectedBatch && currentSelectedBatch.status === 'ended'
 
@@ -643,7 +670,6 @@ export default function QuickAddPage() {
                 )}
               </select>
 
-              {/* 🟢 若所選批次已結束，貼心提示使用者 */}
               {isCurrentBatchEnded && (
                 <div className="bg-amber-950/40 border border-amber-500/40 text-amber-300 p-3 rounded-xl text-[11px] flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
@@ -725,15 +751,16 @@ export default function QuickAddPage() {
             />
           </div>
 
-          <div className="space-y-2">
+          {/* 🟢 多張圖片管理與上架區塊 */}
+          <div className="space-y-2.5">
             <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-emerald-400" /> 商品圖片
+              <ImageIcon className="w-3.5 h-3.5 text-emerald-400" /> 商品照片管理 (可新增多張)
             </label>
             
             <div className="flex flex-col sm:flex-row gap-3 items-center">
-              <label className="w-full sm:w-auto px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border border-slate-700">
+              <label className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border border-slate-700">
                 <Upload className="w-4 h-4 text-emerald-400" />
-                <span>{uploadingImage ? '正在自動壓縮並上傳...' : '從相簿選擇圖片'}</span>
+                <span>{uploadingImage ? '壓縮上傳中...' : '從相簿選擇圖片'}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -743,19 +770,42 @@ export default function QuickAddPage() {
                 />
               </label>
 
-              <input
-                type="url"
-                placeholder="或直接貼上圖片網址 https://..."
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="flex-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
-              />
+              <div className="flex-1 w-full flex gap-2">
+                <input
+                  type="url"
+                  placeholder="或貼上圖片網址 https://..."
+                  value={newImageUrlInput}
+                  onChange={(e) => setNewImageUrlInput(e.target.value)}
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAddImageUrl(false)}
+                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap"
+                >
+                  + 新增
+                </button>
+              </div>
             </div>
 
-            {imageUrl && (
-              <div className="mt-2 flex items-center gap-3 p-2 bg-slate-950 rounded-xl border border-slate-800">
-                <img src={imageUrl} alt="預覽" className="w-12 h-12 rounded-lg object-cover border border-slate-700" />
-                <span className="text-[11px] text-emerald-400 truncate flex-1">已成功載入圖片：{imageUrl}</span>
+            {imageUrls.length > 0 && (
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5 pt-2">
+                {imageUrls.map((url, index) => (
+                  <div key={index} className="relative group bg-slate-950 border border-slate-800 rounded-xl overflow-hidden h-20">
+                    <img src={url} alt={`預覽 ${index}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index, false)}
+                      className="absolute top-1 right-1 bg-rose-600 hover:bg-rose-500 text-white p-1 rounded-full shadow transition cursor-pointer"
+                      title="刪除此張照片"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                    <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] px-1.5 rounded">
+                      #{index + 1} {index === 0 ? '(主圖)' : ''}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -818,6 +868,7 @@ export default function QuickAddPage() {
               <div className="space-y-2.5 max-h-[55vh] overflow-y-auto pr-1">
                 {drafts.map((d, index) => {
                   const isChecked = selectedDraftIds.includes(d.id)
+                  const imgs = Array.isArray(d.image_urls) && d.image_urls.length > 0 ? d.image_urls : (d.image_url ? [d.image_url] : [])
 
                   return (
                     <div
@@ -847,8 +898,15 @@ export default function QuickAddPage() {
 
                         <span className="text-xs font-mono text-slate-500 w-5">#{index + 1}</span>
                         
-                        {d.image_url ? (
-                          <img src={d.image_url} alt={d.name} className="w-11 h-11 rounded-xl object-cover border border-slate-800" />
+                        {imgs.length > 0 ? (
+                          <div className="relative">
+                            <img src={imgs[0]} alt={d.name} className="w-11 h-11 rounded-xl object-cover border border-slate-800" />
+                            {imgs.length > 1 && (
+                              <span className="absolute -bottom-1.5 -right-1.5 bg-emerald-500 text-slate-950 font-bold text-[9px] px-1 py-0.5 rounded-full">
+                                {imgs.length}張
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <div className="w-11 h-11 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 text-[10px]">無圖</div>
                         )}
@@ -903,14 +961,14 @@ export default function QuickAddPage() {
         </div>
       )}
 
-      {/* 編輯草稿 Modal */}
+      {/* 編輯草稿 Modal（支援多圖上傳與相簿選擇） */}
       {editingDraft && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <form onSubmit={handleUpdateDraft} className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Edit3 className="w-4 h-4 text-emerald-400" />
-                編輯草稿商品
+                編輯草稿商品與多張照片
               </h3>
               <button type="button" onClick={() => setEditingDraft(null)} className="text-slate-400 hover:text-slate-200 cursor-pointer">
                 <X className="w-5 h-5" />
@@ -975,17 +1033,14 @@ export default function QuickAddPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">圖片網址</label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={editImageUrl}
-                    onChange={(e) => setEditImageUrl(e.target.value)}
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
-                  />
-                  <label className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer border border-slate-700">
-                    上傳
+              {/* 草稿編輯中的多圖管理與相簿選擇區塊 */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-300">商品照片管理 (可新增多張)</label>
+                
+                <div className="flex flex-col sm:flex-row gap-2 items-center">
+                  <label className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border border-slate-700">
+                    <Upload className="w-4 h-4 text-emerald-400" />
+                    <span>從相簿選擇圖片</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -993,9 +1048,44 @@ export default function QuickAddPage() {
                       className="hidden"
                     />
                   </label>
+
+                  <div className="flex-1 w-full flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="貼上圖片網址 https://..."
+                      value={editNewUrlInput}
+                      onChange={(e) => setEditNewUrlInput(e.target.value)}
+                      className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddImageUrl(true)}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap"
+                    >
+                      + 新增
+                    </button>
+                  </div>
                 </div>
-                {editImageUrl && (
-                  <img src={editImageUrl} alt="預覽" className="w-12 h-12 rounded-lg object-cover border border-slate-700 mt-2" />
+
+                {editImageUrls.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 pt-2">
+                    {editImageUrls.map((url, index) => (
+                      <div key={index} className="relative group bg-slate-950 border border-slate-800 rounded-xl overflow-hidden h-20">
+                        <img src={url} alt={`預覽 ${index}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index, true)}
+                          className="absolute top-1 right-1 bg-rose-600 hover:bg-rose-500 text-white p-1 rounded-full shadow transition cursor-pointer"
+                          title="刪除此張照片"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] px-1.5 rounded">
+                          #{index + 1} {index === 0 ? '(主圖)' : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

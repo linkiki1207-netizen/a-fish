@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { Package, Trash2, Tag, Layers, Search, AlertCircle, Edit3, X, Check, DollarSign, Image as ImageIcon, FileText, Eye, EyeOff } from 'lucide-react'
+import { Package, Trash2, Tag, Layers, Search, AlertCircle, Edit3, X, Check, DollarSign, Image as ImageIcon, FileText, Eye, EyeOff, Upload } from 'lucide-react'
 
 export default function AdminProductsPage() {
   const router = useRouter()
@@ -21,8 +21,13 @@ export default function AdminProductsPage() {
   const [editStock, setEditStock] = useState('')
   const [editVariants, setEditVariants] = useState('')
   const [editDescription, setEditDescription] = useState('')
-  const [editImageUrl, setEditImageUrl] = useState('')
   
+  // 🟢 多圖編輯狀態
+  const [editImageUrls, setEditImageUrls] = useState<string[]>([])
+  const [newImageUrlInput, setNewImageUrlInput] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const [editCategory, setEditCategory] = useState<'flash' | 'batch' | 'spot'>('flash')
   const [editBatchId, setEditBatchId] = useState('')
 
@@ -60,7 +65,6 @@ export default function AdminProductsPage() {
     }
   }
 
-  // 🟢 點擊下架/上架：單純切換狀態，不進行頁面跳轉
   const handleToggleActive = async (product: any) => {
     const currentActive = product.is_active !== false
     const nextActive = !currentActive
@@ -114,9 +118,72 @@ export default function AdminProductsPage() {
     setEditStock(String(p.stock || 0))
     setEditVariants(Array.isArray(p.variants) ? p.variants.join('\n') : (p.variants || ''))
     setEditDescription(p.description || '')
-    setEditImageUrl(p.image_url || '')
+    
+    let imgs: string[] = []
+    if (Array.isArray(p.image_urls) && p.image_urls.length > 0) {
+      imgs = p.image_urls.filter(Boolean)
+    } else if (p.image_url) {
+      imgs = [p.image_url]
+    }
+    setEditImageUrls(imgs)
+    setNewImageUrlInput('')
+
     setEditCategory(p.category || 'flash')
     setEditBatchId(p.batch_id || (batches.length > 0 ? batches[0].id : ''))
+  }
+
+  const handleAddImageUrl = () => {
+    if (!newImageUrlInput.trim()) return
+    setEditImageUrls([...editImageUrls, newImageUrlInput.trim()])
+    setNewImageUrlInput('')
+  }
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setEditImageUrls(editImageUrls.filter((_, idx) => idx !== indexToRemove))
+  }
+
+  // 🟢 從相簿選擇圖片上傳至 Supabase Storage
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setUploadingImage(true)
+    try {
+      const uploadedUrls: string[] = []
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`
+        const filePath = `products/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, file)
+
+        if (uploadError) {
+          throw uploadError
+        }
+
+        const { data: publicURLData } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath)
+
+        if (publicURLData?.publicUrl) {
+          uploadedUrls.push(publicURLData.publicUrl)
+        }
+      }
+
+      setEditImageUrls(prev => [...prev, ...uploadedUrls])
+    } catch (err: any) {
+      console.error(err)
+      alert(`圖片上傳失敗：${err.message || '請確認 Supabase Storage 是否已建立 product-images 儲存桶'}`)
+    } finally {
+      setUploadingImage(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
   }
 
   const handleUpdateProduct = async (e: React.FormEvent) => {
@@ -146,7 +213,8 @@ export default function AdminProductsPage() {
         stock: editCategory === 'spot' ? (Number(editStock) || 0) : 9999,
         variants: variantsArray,
         description: editDescription.trim() || null,
-        image_url: editImageUrl.trim() || null,
+        image_urls: editImageUrls,
+        image_url: editImageUrls.length > 0 ? editImageUrls[0] : null,
         category: editCategory,
         batch_id: targetBatchId,
         batch_name: targetBatchName,
@@ -197,6 +265,12 @@ export default function AdminProductsPage() {
   const getVariantsArray = (variants: any): string[] => {
     if (Array.isArray(variants)) return variants.map(v => String(v))
     if (typeof variants === 'string') return variants.split('\n').map(v => v.trim()).filter(Boolean)
+    return []
+  }
+
+  const getProductImages = (p: any): string[] => {
+    if (Array.isArray(p.image_urls) && p.image_urls.length > 0) return p.image_urls.filter(Boolean)
+    if (p.image_url) return [p.image_url]
     return []
   }
 
@@ -323,6 +397,7 @@ export default function AdminProductsPage() {
             const variantList = getVariantsArray(p.variants)
             const productName = typeof p.name === 'string' ? p.name : String(p?.name || '未命名商品')
             const isActive = p.is_active !== false
+            const images = getProductImages(p)
 
             return (
               <div key={p.id} className={`bg-slate-900 border rounded-3xl p-5 space-y-4 shadow-xl flex flex-col justify-between transition ${
@@ -348,8 +423,15 @@ export default function AdminProductsPage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    {p.image_url ? (
-                      <img src={p.image_url} alt={productName} className="w-14 h-14 rounded-2xl object-cover border border-slate-800" />
+                    {images.length > 0 ? (
+                      <div className="relative">
+                        <img src={images[0]} alt={productName} className="w-14 h-14 rounded-2xl object-cover border border-slate-800" />
+                        {images.length > 1 && (
+                          <span className="absolute -bottom-1.5 -right-1.5 bg-emerald-500 text-slate-950 font-bold text-[9px] px-1.5 py-0.5 rounded-full shadow">
+                            {images.length}張
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-600 text-xs">
                         無圖
@@ -406,13 +488,14 @@ export default function AdminProductsPage() {
         </div>
       )}
 
+      {/* 編輯商品 Modal */}
       {editingProduct && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <form onSubmit={handleUpdateProduct} className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Edit3 className="w-4 h-4 text-emerald-400" />
-                編輯商品資料與上架專區
+                編輯商品資料與多張照片
               </h3>
               <button type="button" onClick={() => setEditingProduct(null)} className="text-slate-400 hover:text-slate-200 cursor-pointer">
                 <X className="w-5 h-5" />
@@ -510,7 +593,7 @@ export default function AdminProductsPage() {
                   <span className="text-[10px] text-slate-400">換行即代表不同規格項目</span>
                 </div>
                 <textarea
-                  rows={4}
+                  rows={3}
                   value={editVariants}
                   onChange={(e) => setEditVariants(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400 resize-none font-mono"
@@ -520,21 +603,77 @@ export default function AdminProductsPage() {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300">商品詳細說明 (選填)</label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400 resize-none"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">圖片網址 (Image URL)</label>
+              {/* 🟢 商品照片管理（包含「從相簿選擇圖片」與網址輸入） */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-300">商品照片管理 (可新增多張)</label>
+                
+                {/* 隱藏的檔案上傳 input */}
                 <input
-                  type="url"
-                  value={editImageUrl}
-                  onChange={(e) => setEditImageUrl(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  multiple
+                  accept="image/*"
+                  className="hidden"
                 />
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  >
+                    <Upload className="w-4 h-4 text-emerald-400" />
+                    {uploadingImage ? '上傳中...' : '從相簿選擇圖片'}
+                  </button>
+
+                  <div className="flex flex-1 gap-2">
+                    <input
+                      type="url"
+                      placeholder="或貼上圖片網址 https://..."
+                      value={newImageUrlInput}
+                      onChange={(e) => setNewImageUrlInput(e.target.value)}
+                      className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddImageUrl}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap"
+                    >
+                      + 新增
+                    </button>
+                  </div>
+                </div>
+
+                {/* 已上傳照片縮圖與刪除按鈕 */}
+                {editImageUrls.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 pt-2">
+                    {editImageUrls.map((url, index) => (
+                      <div key={index} className="relative group bg-slate-950 border border-slate-800 rounded-xl overflow-hidden h-20">
+                        <img src={url} alt={`預覽 ${index}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 bg-rose-600 hover:bg-rose-500 text-white p-1 rounded-full shadow transition cursor-pointer"
+                          title="刪除此張照片"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] px-1.5 rounded">
+                          #{index + 1} {index === 0 ? '(主圖)' : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
