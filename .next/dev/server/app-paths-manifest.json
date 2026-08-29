@@ -1,9 +1,4 @@
 {
-  "/admin/batches/page": "app/admin/batches/page.js",
-  "/admin/orders/page": "app/admin/orders/page.js",
   "/admin/products/page": "app/admin/products/page.js",
-  "/admin/purchasing/page": "app/admin/purchasing/page.js",
-  "/admin/quick-add/page": "app/admin/quick-add/page.js",
-  "/api/auth/line/callback/route": "app/api/auth/line/callback/route.js",
   "/page": "app/page.js"
 }
