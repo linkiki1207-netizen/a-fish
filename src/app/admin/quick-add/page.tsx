@@ -252,18 +252,10 @@ export default function QuickAddPage() {
     }
 
     const selectedBatch = batches.find(b => b.id === selectedBId)
-    if (!selectedBatch || selectedBatch.status === 'ended') {
-      return {
-        category: 'spot' as const,
-        batchId: null,
-        batchName: '現貨專區'
-      }
-    }
-
     return {
       category: currentCategory,
-      batchId: selectedBatch.id,
-      batchName: selectedBatch.name
+      batchId: selectedBatch ? selectedBatch.id : null,
+      batchName: selectedBatch ? selectedBatch.name : '各國連線'
     }
   }
 
@@ -300,10 +292,6 @@ export default function QuickAddPage() {
 
       const { error } = await supabase.from('products').insert([productData])
       if (error) throw error
-
-      if (targetInfo.category === 'spot' && batches.find(b => b.id === selectedBatchId)?.status === 'ended') {
-        alert('💡 提示：您所選的批次已結束，系統已自動將此商品上架至「現貨專區」！')
-      }
 
       setSuccessMsg(`🚀 成功上架商品：${name.trim()} (${targetInfo.batchName})！`)
       setName('')
@@ -485,22 +473,20 @@ export default function QuickAddPage() {
     setBatchPublishing(true)
     try {
       const payload = itemsToPublish.map(d => {
-        const batchObj = batches.find(b => b.id === d.batch_id)
-        const isEnded = batchObj && batchObj.status === 'ended'
         const imgs = Array.isArray(d.image_urls) && d.image_urls.length > 0 ? d.image_urls : (d.image_url ? [d.image_url] : [])
 
         return {
           name: d.name,
           price: d.price,
           cost: d.cost,
-          stock: isEnded ? (d.stock || 99) : 9999,
+          stock: d.category === 'spot' ? (d.stock || 99) : 9999,
           variants: d.variants,
           image_urls: imgs,
           image_url: imgs.length > 0 ? imgs[0] : null,
           description: d.description,
-          category: isEnded ? 'spot' : d.category,
-          batch_id: isEnded ? null : d.batch_id,
-          batch_name: isEnded ? '現貨專區' : d.batch_name,
+          category: d.category,
+          batch_id: d.batch_id,
+          batch_name: d.batch_name,
           is_active: true
         }
       })
@@ -527,9 +513,6 @@ export default function QuickAddPage() {
     }
   }
 
-  const currentSelectedBatch = batches.find(b => b.id === selectedBatchId)
-  const isCurrentBatchEnded = currentSelectedBatch && currentSelectedBatch.status === 'ended'
-
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
       <div>
@@ -538,7 +521,7 @@ export default function QuickAddPage() {
           全方位快速上架與雲端草稿同步
         </h1>
         <p className="text-xs text-slate-400 mt-1">
-          在此填寫商品資料。若所選批次已結束，系統會自動轉為上架至「現貨專區」！
+          在此填寫商品資料，快速發布至指定專區或加入雲端草稿暫存！
         </p>
       </div>
 
@@ -664,18 +647,11 @@ export default function QuickAddPage() {
                 ) : (
                   batches.map(b => (
                     <option key={b.id} value={b.id}>
-                      {b.name} {b.status === 'ended' ? ' (已結束 ➔ 將自動轉為現貨)' : ''}
+                      {b.name}
                     </option>
                   ))
                 )}
               </select>
-
-              {isCurrentBatchEnded && (
-                <div className="bg-amber-950/40 border border-amber-500/40 text-amber-300 p-3 rounded-xl text-[11px] flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>注意：您目前選取的批次已結束，在此上架將會自動轉為<strong>「現貨專區」</strong>。</span>
-                </div>
-              )}
             </div>
           )}
 
@@ -694,7 +670,7 @@ export default function QuickAddPage() {
               />
             </div>
 
-            <div className={`grid gap-2 ${(activeTab === 'spot' || isCurrentBatchEnded) ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`grid gap-2 ${activeTab === 'spot' ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                   <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> 售價 (NT$)
@@ -708,7 +684,7 @@ export default function QuickAddPage() {
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                 />
               </div>
-              {(activeTab === 'spot' || isCurrentBatchEnded) && (
+              {activeTab === 'spot' && (
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                     <Package className="w-3.5 h-3.5 text-slate-400" /> 現貨庫存
@@ -751,7 +727,7 @@ export default function QuickAddPage() {
             />
           </div>
 
-          {/* 🟢 多張圖片管理與上架區塊 */}
+          {/* 多張圖片管理與上架區塊 */}
           <div className="space-y-2.5">
             <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
               <ImageIcon className="w-3.5 h-3.5 text-emerald-400" /> 商品照片管理 (可新增多張)
@@ -961,7 +937,7 @@ export default function QuickAddPage() {
         </div>
       )}
 
-      {/* 編輯草稿 Modal（支援多圖上傳與相簿選擇） */}
+      {/* 編輯草稿 Modal */}
       {editingDraft && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <form onSubmit={handleUpdateDraft} className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -1033,7 +1009,7 @@ export default function QuickAddPage() {
                 />
               </div>
 
-              {/* 草稿編輯中的多圖管理與相簿選擇區塊 */}
+              {/* 草稿編輯中的多圖管理區塊 */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-300">商品照片管理 (可新增多張)</label>
                 

@@ -70,16 +70,8 @@ export default function AdminProductsPage() {
     const nextActive = !currentActive
 
     try {
-      let updatePayload: any = { is_active: nextActive }
-
-      if (currentActive && product.category === 'spot') {
-        const activeBatch = batches.find(b => b.status !== 'ended')
-        updatePayload.category = 'batch'
-        if (activeBatch) {
-          updatePayload.batch_id = activeBatch.id
-          updatePayload.batch_name = activeBatch.name
-        }
-      }
+      // 🟢 修正：重新上架時，只切換上下架狀態，絕對不改變原本的 category 與 batch_id
+      const updatePayload = { is_active: nextActive }
 
       const { error } = await supabase
         .from('products')
@@ -142,7 +134,6 @@ export default function AdminProductsPage() {
     setEditImageUrls(editImageUrls.filter((_, idx) => idx !== indexToRemove))
   }
 
-  // 🟢 從相簿選擇圖片上傳至 Supabase Storage
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
@@ -610,11 +601,9 @@ export default function AdminProductsPage() {
                 />
               </div>
 
-              {/* 🟢 商品照片管理（包含「從相簿選擇圖片」與網址輸入） */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-300">商品照片管理 (可新增多張)</label>
                 
-                {/* 隱藏的檔案上傳 input */}
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -653,7 +642,6 @@ export default function AdminProductsPage() {
                   </div>
                 </div>
 
-                {/* 已上傳照片縮圖與刪除按鈕 */}
                 {editImageUrls.length > 0 && (
                   <div className="grid grid-cols-4 gap-2 pt-2">
                     {editImageUrls.map((url, index) => (

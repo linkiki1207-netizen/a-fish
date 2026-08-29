@@ -156,25 +156,24 @@ function AdminBatchesPage() {
         }
     };
     const handleRestartBatch = async (batchId, batchName)=>{
-        if (!confirm(`確定要重新啟用批次「${batchName}」嗎？\n系統將自動重新啟用此批次，並將該批次所有商品恢復至連線批次！`)) return;
+        if (!confirm(`確定要重新啟用批次「${batchName}」嗎？\n系統將自動重新啟用此批次，並將該批次所有商品恢復上架！`)) return;
         try {
             const { error } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('batches').update({
                 status: 'active'
             }).eq('id', batchId);
             if (error) throw error;
+            // 🟢 修正：重新啟用時只將 is_active 設為 true，不強制改變 category，保留原本的分類（限時下單或各國連線）
             await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('products').update({
-                is_active: true,
-                category: 'batch'
+                is_active: true
             }).eq('batch_id', batchId);
             await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('products').update({
-                is_active: true,
-                category: 'batch'
+                is_active: true
             }).eq('batch_name', batchName);
             setBatches(batches.map((b)=>b.id === batchId ? {
                     ...b,
                     status: 'active'
                 } : b));
-            setSuccessMsg(`🚀 批次「${batchName}」已重新啟用，相關商品已全數回到連線批次！`);
+            setSuccessMsg(`🚀 批次「${batchName}」已重新啟用，相關商品已全數恢復上架！`);
             setTimeout(()=>setSuccessMsg(''), 4000);
         } catch (err) {
             console.error(err);
@@ -284,14 +283,14 @@ function AdminBatchesPage() {
                                 className: "w-5 h-5 text-emerald-400"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                lineNumber: 319,
+                                lineNumber: 320,
                                 columnNumber: 11
                             }, this),
                             "連線批次管理中心"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                        lineNumber: 318,
+                        lineNumber: 319,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -299,13 +298,13 @@ function AdminBatchesPage() {
                         children: "管理進行中的代購批次或檢視過去式存檔，點擊批次總覽可同步查看該批次所有商品與訂單。"
                     }, void 0, false, {
                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                        lineNumber: 322,
+                        lineNumber: 323,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                lineNumber: 317,
+                lineNumber: 318,
                 columnNumber: 7
             }, this),
             successMsg && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -315,7 +314,7 @@ function AdminBatchesPage() {
                         className: "w-4 h-4"
                     }, void 0, false, {
                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                        lineNumber: 329,
+                        lineNumber: 330,
                         columnNumber: 11
                     }, this),
                     " ",
@@ -323,7 +322,7 @@ function AdminBatchesPage() {
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                lineNumber: 328,
+                lineNumber: 329,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -337,14 +336,14 @@ function AdminBatchesPage() {
                                 className: "w-4 h-4 text-emerald-400"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                lineNumber: 336,
+                                lineNumber: 337,
                                 columnNumber: 11
                             }, this),
                             " 建立新連線批次"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                        lineNumber: 335,
+                        lineNumber: 336,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -359,7 +358,7 @@ function AdminBatchesPage() {
                                 className: "flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                lineNumber: 339,
+                                lineNumber: 340,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -370,26 +369,26 @@ function AdminBatchesPage() {
                                         className: "w-4 h-4"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                        lineNumber: 351,
+                                        lineNumber: 352,
                                         columnNumber: 13
                                     }, this),
                                     " 建立批次"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                lineNumber: 347,
+                                lineNumber: 348,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                        lineNumber: 338,
+                        lineNumber: 339,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                lineNumber: 334,
+                lineNumber: 335,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -405,7 +404,7 @@ function AdminBatchesPage() {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                        lineNumber: 358,
+                        lineNumber: 359,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -418,13 +417,13 @@ function AdminBatchesPage() {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                        lineNumber: 368,
+                        lineNumber: 369,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                lineNumber: 357,
+                lineNumber: 358,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -440,14 +439,14 @@ function AdminBatchesPage() {
                                         className: "w-4 h-4 text-emerald-400"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                        lineNumber: 384,
+                                        lineNumber: 385,
                                         columnNumber: 13
                                     }, this),
                                     activeTab === 'active' ? '進行中批次列表' : '過去式批次存檔'
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                lineNumber: 383,
+                                lineNumber: 384,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -457,7 +456,7 @@ function AdminBatchesPage() {
                                         className: "w-4 h-4 text-slate-500 absolute left-3 top-2.5"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                        lineNumber: 389,
+                                        lineNumber: 390,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -468,19 +467,19 @@ function AdminBatchesPage() {
                                         className: "w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-400 placeholder:text-slate-600"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                        lineNumber: 390,
+                                        lineNumber: 391,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                lineNumber: 388,
+                                lineNumber: 389,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                        lineNumber: 382,
+                        lineNumber: 383,
                         columnNumber: 9
                     }, this),
                     loading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -488,7 +487,7 @@ function AdminBatchesPage() {
                         children: "載入批次中..."
                     }, void 0, false, {
                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                        lineNumber: 401,
+                        lineNumber: 402,
                         columnNumber: 11
                     }, this) : filteredBatches.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "text-center py-10 space-y-2",
@@ -497,7 +496,7 @@ function AdminBatchesPage() {
                                 className: "w-6 h-6 text-slate-600 mx-auto"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                lineNumber: 404,
+                                lineNumber: 405,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -505,13 +504,13 @@ function AdminBatchesPage() {
                                 children: searchQuery ? `找不到符合「${searchQuery}」的批次紀錄。` : '目前沒有相關的批次。'
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                lineNumber: 405,
+                                lineNumber: 406,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                        lineNumber: 403,
+                        lineNumber: 404,
                         columnNumber: 11
                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "space-y-2.5",
@@ -531,13 +530,13 @@ function AdminBatchesPage() {
                                                         children: "已結束"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                        lineNumber: 417,
+                                                        lineNumber: 418,
                                                         columnNumber: 23
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                lineNumber: 414,
+                                                lineNumber: 415,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -547,7 +546,7 @@ function AdminBatchesPage() {
                                                         className: "w-3 h-3"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                        lineNumber: 421,
+                                                        lineNumber: 422,
                                                         columnNumber: 21
                                                     }, this),
                                                     " 建立時間：",
@@ -555,13 +554,13 @@ function AdminBatchesPage() {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                lineNumber: 420,
+                                                lineNumber: 421,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                        lineNumber: 413,
+                                        lineNumber: 414,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -575,14 +574,14 @@ function AdminBatchesPage() {
                                                         className: "w-3.5 h-3.5"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                        lineNumber: 430,
+                                                        lineNumber: 431,
                                                         columnNumber: 21
                                                     }, this),
                                                     " 編輯"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                lineNumber: 426,
+                                                lineNumber: 427,
                                                 columnNumber: 19
                                             }, this),
                                             activeTab === 'active' ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -593,14 +592,14 @@ function AdminBatchesPage() {
                                                         className: "w-3.5 h-3.5"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                        lineNumber: 438,
+                                                        lineNumber: 439,
                                                         columnNumber: 23
                                                     }, this),
                                                     " 結束批次"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                lineNumber: 434,
+                                                lineNumber: 435,
                                                 columnNumber: 21
                                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                                 onClick: ()=>handleRestartBatch(b.id, b.name),
@@ -610,14 +609,14 @@ function AdminBatchesPage() {
                                                         className: "w-3.5 h-3.5"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                        lineNumber: 445,
+                                                        lineNumber: 446,
                                                         columnNumber: 23
                                                     }, this),
                                                     " 重新啟用"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                lineNumber: 441,
+                                                lineNumber: 442,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -628,37 +627,37 @@ function AdminBatchesPage() {
                                                         className: "w-3.5 h-3.5"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                        lineNumber: 453,
+                                                        lineNumber: 454,
                                                         columnNumber: 21
                                                     }, this),
                                                     " 批次總覽"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                lineNumber: 449,
+                                                lineNumber: 450,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                        lineNumber: 425,
+                                        lineNumber: 426,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, b.id, true, {
                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                lineNumber: 412,
+                                lineNumber: 413,
                                 columnNumber: 15
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                        lineNumber: 410,
+                        lineNumber: 411,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                lineNumber: 381,
+                lineNumber: 382,
                 columnNumber: 7
             }, this),
             editingBatch && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -677,14 +676,14 @@ function AdminBatchesPage() {
                                             className: "w-4 h-4 text-emerald-400"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                            lineNumber: 468,
+                                            lineNumber: 469,
                                             columnNumber: 17
                                         }, this),
                                         "編輯批次名稱"
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                    lineNumber: 467,
+                                    lineNumber: 468,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -695,18 +694,18 @@ function AdminBatchesPage() {
                                         className: "w-5 h-5"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                        lineNumber: 472,
+                                        lineNumber: 473,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                    lineNumber: 471,
+                                    lineNumber: 472,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                            lineNumber: 466,
+                            lineNumber: 467,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -717,7 +716,7 @@ function AdminBatchesPage() {
                                     children: "批次名稱"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                    lineNumber: 477,
+                                    lineNumber: 478,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -728,13 +727,13 @@ function AdminBatchesPage() {
                                     className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                    lineNumber: 478,
+                                    lineNumber: 479,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                            lineNumber: 476,
+                            lineNumber: 477,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -747,7 +746,7 @@ function AdminBatchesPage() {
                                     children: "取消"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                    lineNumber: 488,
+                                    lineNumber: 489,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -757,24 +756,24 @@ function AdminBatchesPage() {
                                     children: updatingBatch ? '儲存中...' : '儲存修改'
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                    lineNumber: 495,
+                                    lineNumber: 496,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                            lineNumber: 487,
+                            lineNumber: 488,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                    lineNumber: 465,
+                    lineNumber: 466,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                lineNumber: 464,
+                lineNumber: 465,
                 columnNumber: 9
             }, this),
             viewingBatch && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -794,7 +793,7 @@ function AdminBatchesPage() {
                                                     className: "w-4 h-4 text-emerald-400"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                    lineNumber: 514,
+                                                    lineNumber: 515,
                                                     columnNumber: 19
                                                 }, this),
                                                 "批次「",
@@ -803,7 +802,7 @@ function AdminBatchesPage() {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                            lineNumber: 513,
+                                            lineNumber: 514,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -815,7 +814,7 @@ function AdminBatchesPage() {
                                                     children: batchProducts.length
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                    lineNumber: 518,
+                                                    lineNumber: 519,
                                                     columnNumber: 25
                                                 }, this),
                                                 " 項 ｜ 相關訂單共 ",
@@ -824,7 +823,7 @@ function AdminBatchesPage() {
                                                     children: batchOrders.length
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                    lineNumber: 518,
+                                                    lineNumber: 519,
                                                     columnNumber: 110
                                                 }, this),
                                                 " 筆 ｜ 總營收：",
@@ -836,19 +835,19 @@ function AdminBatchesPage() {
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                    lineNumber: 518,
+                                                    lineNumber: 519,
                                                     columnNumber: 191
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                            lineNumber: 517,
+                                            lineNumber: 518,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                    lineNumber: 512,
+                                    lineNumber: 513,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -858,18 +857,18 @@ function AdminBatchesPage() {
                                         className: "w-5 h-5"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/batches/page.tsx",
-                                        lineNumber: 522,
+                                        lineNumber: 523,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                    lineNumber: 521,
+                                    lineNumber: 522,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                            lineNumber: 511,
+                            lineNumber: 512,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -883,7 +882,7 @@ function AdminBatchesPage() {
                                             className: "w-3.5 h-3.5"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                            lineNumber: 535,
+                                            lineNumber: 536,
                                             columnNumber: 17
                                         }, this),
                                         " 商品明細 (",
@@ -892,7 +891,7 @@ function AdminBatchesPage() {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                    lineNumber: 527,
+                                    lineNumber: 528,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -903,7 +902,7 @@ function AdminBatchesPage() {
                                             className: "w-3.5 h-3.5"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                            lineNumber: 545,
+                                            lineNumber: 546,
                                             columnNumber: 17
                                         }, this),
                                         " 相關訂單 (",
@@ -912,13 +911,13 @@ function AdminBatchesPage() {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                    lineNumber: 537,
+                                    lineNumber: 538,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                            lineNumber: 526,
+                            lineNumber: 527,
                             columnNumber: 13
                         }, this),
                         loadingBatchData ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -926,7 +925,7 @@ function AdminBatchesPage() {
                             children: "統整資料讀取中..."
                         }, void 0, false, {
                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                            lineNumber: 550,
+                            lineNumber: 551,
                             columnNumber: 15
                         }, this) : modalTab === 'products' ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "space-y-2.5 max-h-[55vh] overflow-y-auto pr-1",
@@ -935,7 +934,7 @@ function AdminBatchesPage() {
                                 children: "此批次目前沒有建立任何商品。"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                lineNumber: 554,
+                                lineNumber: 555,
                                 columnNumber: 19
                             }, this) : batchProducts.map((p)=>{
                                 const stats = getProductStats(p.name);
@@ -951,14 +950,14 @@ function AdminBatchesPage() {
                                                     className: "w-12 h-12 rounded-xl object-cover border border-slate-800"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                    lineNumber: 563,
+                                                    lineNumber: 564,
                                                     columnNumber: 29
                                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                     className: "w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 text-[10px]",
                                                     children: "無圖"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                    lineNumber: 565,
+                                                    lineNumber: 566,
                                                     columnNumber: 29
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -969,7 +968,7 @@ function AdminBatchesPage() {
                                                             children: p.name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                            lineNumber: 570,
+                                                            lineNumber: 571,
                                                             columnNumber: 29
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -983,7 +982,7 @@ function AdminBatchesPage() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                    lineNumber: 572,
+                                                                    lineNumber: 573,
                                                                     columnNumber: 31
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -991,7 +990,7 @@ function AdminBatchesPage() {
                                                                     children: "｜"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                    lineNumber: 573,
+                                                                    lineNumber: 574,
                                                                     columnNumber: 31
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1006,13 +1005,13 @@ function AdminBatchesPage() {
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                            lineNumber: 574,
+                                                                            lineNumber: 575,
                                                                             columnNumber: 69
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                    lineNumber: 574,
+                                                                    lineNumber: 575,
                                                                     columnNumber: 31
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1020,7 +1019,7 @@ function AdminBatchesPage() {
                                                                     children: "｜"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                    lineNumber: 575,
+                                                                    lineNumber: 576,
                                                                     columnNumber: 31
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1035,19 +1034,19 @@ function AdminBatchesPage() {
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                            lineNumber: 576,
+                                                                            lineNumber: 577,
                                                                             columnNumber: 68
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                    lineNumber: 576,
+                                                                    lineNumber: 577,
                                                                     columnNumber: 31
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                            lineNumber: 571,
+                                                            lineNumber: 572,
                                                             columnNumber: 29
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1061,13 +1060,13 @@ function AdminBatchesPage() {
                                                                             children: stats.boughtQty
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                            lineNumber: 579,
+                                                                            lineNumber: 580,
                                                                             columnNumber: 43
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                    lineNumber: 579,
+                                                                    lineNumber: 580,
                                                                     columnNumber: 31
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1078,31 +1077,31 @@ function AdminBatchesPage() {
                                                                             children: stats.failedQty
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                            lineNumber: 580,
+                                                                            lineNumber: 581,
                                                                             columnNumber: 42
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                    lineNumber: 580,
+                                                                    lineNumber: 581,
                                                                     columnNumber: 31
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                            lineNumber: 578,
+                                                            lineNumber: 579,
                                                             columnNumber: 29
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                    lineNumber: 569,
+                                                    lineNumber: 570,
                                                     columnNumber: 27
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                            lineNumber: 561,
+                                            lineNumber: 562,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1111,24 +1110,24 @@ function AdminBatchesPage() {
                                                 children: p.is_active ? '上架中' : '已下架'
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                lineNumber: 586,
+                                                lineNumber: 587,
                                                 columnNumber: 27
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                            lineNumber: 585,
+                                            lineNumber: 586,
                                             columnNumber: 25
                                         }, this)
                                     ]
                                 }, p.id, true, {
                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                    lineNumber: 560,
+                                    lineNumber: 561,
                                     columnNumber: 23
                                 }, this);
                             })
                         }, void 0, false, {
                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                            lineNumber: 552,
+                            lineNumber: 553,
                             columnNumber: 15
                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "space-y-3 max-h-[55vh] overflow-y-auto pr-1",
@@ -1137,7 +1136,7 @@ function AdminBatchesPage() {
                                 children: "此批次目前沒有任何買家訂單紀錄。"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                                lineNumber: 600,
+                                lineNumber: 601,
                                 columnNumber: 19
                             }, this) : currentGroupedOrders.map((ord)=>{
                                 const isPaid = ord.pay_status === 'paid';
@@ -1154,7 +1153,7 @@ function AdminBatchesPage() {
                                                             children: ord.line_name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                            lineNumber: 609,
+                                                            lineNumber: 610,
                                                             columnNumber: 29
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1165,13 +1164,13 @@ function AdminBatchesPage() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                            lineNumber: 610,
+                                                            lineNumber: 611,
                                                             columnNumber: 29
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                    lineNumber: 608,
+                                                    lineNumber: 609,
                                                     columnNumber: 27
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1185,7 +1184,7 @@ function AdminBatchesPage() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                            lineNumber: 613,
+                                                            lineNumber: 614,
                                                             columnNumber: 29
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1193,19 +1192,19 @@ function AdminBatchesPage() {
                                                             children: isPaid ? '✓ 已付款' : '未付款'
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                            lineNumber: 614,
+                                                            lineNumber: 615,
                                                             columnNumber: 29
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                    lineNumber: 612,
+                                                    lineNumber: 613,
                                                     columnNumber: 27
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                            lineNumber: 607,
+                                            lineNumber: 608,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1231,7 +1230,7 @@ function AdminBatchesPage() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                    lineNumber: 630,
+                                                                    lineNumber: 631,
                                                                     columnNumber: 35
                                                                 }, this),
                                                                 isBought && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1239,7 +1238,7 @@ function AdminBatchesPage() {
                                                                     children: "✓ 買到"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                    lineNumber: 633,
+                                                                    lineNumber: 634,
                                                                     columnNumber: 48
                                                                 }, this),
                                                                 isFailed && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1247,13 +1246,13 @@ function AdminBatchesPage() {
                                                                     children: "✕ 缺貨"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                                    lineNumber: 634,
+                                                                    lineNumber: 635,
                                                                     columnNumber: 48
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                            lineNumber: 629,
+                                                            lineNumber: 630,
                                                             columnNumber: 33
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1264,48 +1263,48 @@ function AdminBatchesPage() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                            lineNumber: 636,
+                                                            lineNumber: 637,
                                                             columnNumber: 33
                                                         }, this)
                                                     ]
                                                 }, iIdx, true, {
                                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                                    lineNumber: 628,
+                                                    lineNumber: 629,
                                                     columnNumber: 31
                                                 }, this);
                                             })
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                                            lineNumber: 622,
+                                            lineNumber: 623,
                                             columnNumber: 25
                                         }, this)
                                     ]
                                 }, ord.key, true, {
                                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                                    lineNumber: 606,
+                                    lineNumber: 607,
                                     columnNumber: 23
                                 }, this);
                             })
                         }, void 0, false, {
                             fileName: "[project]/src/app/admin/batches/page.tsx",
-                            lineNumber: 598,
+                            lineNumber: 599,
                             columnNumber: 15
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/app/admin/batches/page.tsx",
-                    lineNumber: 510,
+                    lineNumber: 511,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/app/admin/batches/page.tsx",
-                lineNumber: 509,
+                lineNumber: 510,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/admin/batches/page.tsx",
-        lineNumber: 316,
+        lineNumber: 317,
         columnNumber: 5
     }, this);
 }

@@ -168,7 +168,7 @@ export default function AdminBatchesPage() {
   }
 
   const handleRestartBatch = async (batchId: string, batchName: string) => {
-    if (!confirm(`確定要重新啟用批次「${batchName}」嗎？\n系統將自動重新啟用此批次，並將該批次所有商品恢復至連線批次！`)) return
+    if (!confirm(`確定要重新啟用批次「${batchName}」嗎？\n系統將自動重新啟用此批次，並將該批次所有商品恢復上架！`)) return
 
     try {
       const { error } = await supabase
@@ -178,18 +178,19 @@ export default function AdminBatchesPage() {
 
       if (error) throw error
 
+      // 🟢 修正：重新啟用時只將 is_active 設為 true，不強制改變 category，保留原本的分類（限時下單或各國連線）
       await supabase
         .from('products')
-        .update({ is_active: true, category: 'batch' })
+        .update({ is_active: true })
         .eq('batch_id', batchId)
 
       await supabase
         .from('products')
-        .update({ is_active: true, category: 'batch' })
+        .update({ is_active: true })
         .eq('batch_name', batchName)
 
       setBatches(batches.map(b => b.id === batchId ? { ...b, status: 'active' } : b))
-      setSuccessMsg(`🚀 批次「${batchName}」已重新啟用，相關商品已全數回到連線批次！`)
+      setSuccessMsg(`🚀 批次「${batchName}」已重新啟用，相關商品已全數恢復上架！`)
       setTimeout(() => setSuccessMsg(''), 4000)
     } catch (err) {
       console.error(err)
