@@ -18,6 +18,7 @@ export default function AdminProductsPage() {
   const [editingProduct, setEditingProduct] = useState<any | null>(null)
   const [editName, setEditName] = useState('')
   const [editPrice, setEditPrice] = useState('')
+  const [editCost, setEditCost] = useState('') // 🟢 編輯成本狀態
   const [editStock, setEditStock] = useState('')
   const [editVariants, setEditVariants] = useState('')
   const [editDescription, setEditDescription] = useState('')
@@ -70,7 +71,6 @@ export default function AdminProductsPage() {
     const nextActive = !currentActive
 
     try {
-      // 🟢 修正：重新上架時，只切換上下架狀態，絕對不改變原本的 category 與 batch_id
       const updatePayload = { is_active: nextActive }
 
       const { error } = await supabase
@@ -107,6 +107,7 @@ export default function AdminProductsPage() {
     setEditingProduct(p)
     setEditName(p.name || '')
     setEditPrice(String(p.price || 0))
+    setEditCost(String(p.cost || 0)) // 🟢 帶入商品成本
     setEditStock(String(p.stock || 0))
     setEditVariants(Array.isArray(p.variants) ? p.variants.join('\n') : (p.variants || ''))
     setEditDescription(p.description || '')
@@ -201,6 +202,7 @@ export default function AdminProductsPage() {
       const updatedData = {
         name: editName.trim(),
         price: Number(editPrice) || 0,
+        cost: Number(editCost) || 0, // 🟢 儲存成本
         stock: editCategory === 'spot' ? (Number(editStock) || 0) : 9999,
         variants: variantsArray,
         description: editDescription.trim() || null,
@@ -430,7 +432,10 @@ export default function AdminProductsPage() {
                     )}
                     <div>
                       <h2 className="text-sm font-bold text-white">{productName}</h2>
-                      <div className="text-emerald-400 font-black text-sm mt-0.5">NT$ {String(p.price ?? 0)}</div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-emerald-400 font-black text-sm">售 NT$ {String(p.price ?? 0)}</span>
+                        <span className="text-slate-400 text-xs">/ 成本 NT$ {String(p.cost ?? 0)}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -486,7 +491,7 @@ export default function AdminProductsPage() {
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Edit3 className="w-4 h-4 text-emerald-400" />
-                編輯商品資料與多張照片
+                編輯商品資料與成本
               </h3>
               <button type="button" onClick={() => setEditingProduct(null)} className="text-slate-400 hover:text-slate-200 cursor-pointer">
                 <X className="w-5 h-5" />
@@ -553,7 +558,8 @@ export default function AdminProductsPage() {
                 />
               </div>
 
-              <div className={`grid gap-3 ${editCategory === 'spot' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {/* 🟢 售價與成本並排 */}
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-300">售價 (NT$)</label>
                   <input
@@ -564,19 +570,30 @@ export default function AdminProductsPage() {
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                   />
                 </div>
-                {editCategory === 'spot' && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300">現貨庫存</label>
-                    <input
-                      type="number"
-                      required
-                      value={editStock}
-                      onChange={(e) => setEditStock(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
-                    />
-                  </div>
-                )}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-emerald-400">成本 (NT$)</label>
+                  <input
+                    type="number"
+                    required
+                    value={editCost}
+                    onChange={(e) => setEditCost(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 font-bold focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
               </div>
+
+              {editCategory === 'spot' && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">現貨庫存</label>
+                  <input
+                    type="number"
+                    required
+                    value={editStock}
+                    onChange={(e) => setEditStock(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">

@@ -38,7 +38,7 @@ export default function QuickAddPage() {
   // 單品輸入表單狀態
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
-  const [cost, setCost] = useState('')
+  const [cost, setCost] = useState('') // 🟢 成本狀態
   const [stock, setStock] = useState('99')
   const [variants, setVariants] = useState('')
   const [imageUrls, setImageUrls] = useState<string[]>([])
@@ -59,6 +59,7 @@ export default function QuickAddPage() {
   const [editingDraft, setEditingDraft] = useState<DraftProduct | null>(null)
   const [editName, setEditName] = useState('')
   const [editPrice, setEditPrice] = useState('')
+  const [editCost, setEditCost] = useState('') // 🟢 草稿編輯成本
   const [editStock, setEditStock] = useState('')
   const [editVariants, setEditVariants] = useState('')
   const [editDescription, setEditDescription] = useState('')
@@ -278,7 +279,7 @@ export default function QuickAddPage() {
       const productData = {
         name: name.trim(),
         price: Number(price) || 0,
-        cost: Number(cost) || 0,
+        cost: Number(cost) || 0, // 🟢 寫入成本
         stock: finalStock,
         variants: variantsArray,
         image_urls: imageUrls,
@@ -296,7 +297,7 @@ export default function QuickAddPage() {
       setSuccessMsg(`🚀 成功上架商品：${name.trim()} (${targetInfo.batchName})！`)
       setName('')
       setPrice('')
-      setCost('')
+      setCost('') // 🟢 清空成本
       setVariants('')
       setImageUrls([])
       setDescription('')
@@ -326,7 +327,7 @@ export default function QuickAddPage() {
     const newDraftData = {
       name: name.trim(),
       price: Number(price) || 0,
-      cost: Number(cost) || 0,
+      cost: Number(cost) || 0, // 🟢 寫入草稿成本
       stock: finalStock,
       variants: variantsArray,
       image_urls: imageUrls,
@@ -354,7 +355,7 @@ export default function QuickAddPage() {
       
       setName('')
       setPrice('')
-      setCost('')
+      setCost('') // 🟢 清空成本
       setVariants('')
       setImageUrls([])
       setDescription('')
@@ -370,6 +371,7 @@ export default function QuickAddPage() {
     setEditingDraft(d)
     setEditName(d.name || '')
     setEditPrice(String(d.price || 0))
+    setEditCost(String(d.cost || 0)) // 🟢 帶入草稿成本
     setEditStock(String(d.stock || 99))
     setEditVariants(Array.isArray(d.variants) ? d.variants.join('\n') : '')
     setEditDescription(d.description || '')
@@ -397,6 +399,7 @@ export default function QuickAddPage() {
       const updatedFields = {
         name: editName.trim(),
         price: Number(editPrice) || 0,
+        cost: Number(editCost) || 0, // 🟢 更新草稿成本
         stock: Number(editStock) || 99,
         variants: variantsArray,
         description: editDescription.trim() || null,
@@ -478,7 +481,7 @@ export default function QuickAddPage() {
         return {
           name: d.name,
           price: d.price,
-          cost: d.cost,
+          cost: d.cost, // 🟢 批次上架時帶入成本
           stock: d.category === 'spot' ? (d.stock || 99) : 9999,
           variants: d.variants,
           image_urls: imgs,
@@ -521,7 +524,7 @@ export default function QuickAddPage() {
           全方位快速上架與雲端草稿同步
         </h1>
         <p className="text-xs text-slate-400 mt-1">
-          在此填寫商品資料，快速發布至指定專區或加入雲端草稿暫存！
+          在此填寫商品資料與成本，快速發布至指定專區或加入雲端草稿暫存！
         </p>
       </div>
 
@@ -670,7 +673,8 @@ export default function QuickAddPage() {
               />
             </div>
 
-            <div className={`grid gap-2 ${activeTab === 'spot' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {/* 🟢 售價與成本輸入並排 */}
+            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                   <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> 售價 (NT$)
@@ -684,21 +688,35 @@ export default function QuickAddPage() {
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                 />
               </div>
-              {activeTab === 'spot' && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-slate-400" /> 現貨庫存
-                  </label>
-                  <input
-                    type="number"
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
-                  />
-                </div>
-              )}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> 成本 (NT$)
+                </label>
+                <input
+                  type="number"
+                  required
+                  placeholder="0"
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 font-bold focus:outline-none focus:border-emerald-400"
+                />
+              </div>
             </div>
           </div>
+
+          {activeTab === 'spot' && (
+            <div className="space-y-1.5 max-w-xs">
+              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <Package className="w-3.5 h-3.5 text-slate-400" /> 現貨庫存
+              </label>
+              <input
+                type="number"
+                value={stock}
+                onChange={(e) => setStock(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
+              />
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
@@ -878,7 +896,7 @@ export default function QuickAddPage() {
                           <div className="relative">
                             <img src={imgs[0]} alt={d.name} className="w-11 h-11 rounded-xl object-cover border border-slate-800" />
                             {imgs.length > 1 && (
-                              <span className="absolute -bottom-1.5 -right-1.5 bg-emerald-500 text-slate-950 font-bold text-[9px] px-1 py-0.5 rounded-full">
+                              <span className="absolute -bottom-1.5 -right-1.5 bg-emerald-500 text-slate-950 font-bold text-[9px] px-1.5 py-0.5 rounded-full">
                                 {imgs.length}張
                               </span>
                             )}
@@ -889,7 +907,7 @@ export default function QuickAddPage() {
                         <div>
                           <div className="text-xs font-bold text-white">{d.name}</div>
                           <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                            <span className="text-emerald-400 font-mono font-bold">NT$ {d.price}</span>
+                            <span className="text-emerald-400 font-mono font-bold">售 NT$ {d.price} / 成本 NT$ {d.cost}</span>
                             <span>｜</span>
                             <span className="bg-slate-900 px-2 py-0.5 rounded text-[10px] text-emerald-300">{d.batch_name}</span>
                           </div>
@@ -944,7 +962,7 @@ export default function QuickAddPage() {
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Edit3 className="w-4 h-4 text-emerald-400" />
-                編輯草稿商品與多張照片
+                編輯草稿商品與成本
               </h3>
               <button type="button" onClick={() => setEditingDraft(null)} className="text-slate-400 hover:text-slate-200 cursor-pointer">
                 <X className="w-5 h-5" />
@@ -963,7 +981,7 @@ export default function QuickAddPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-300">售價 (NT$)</label>
                   <input
@@ -972,6 +990,16 @@ export default function QuickAddPage() {
                     value={editPrice}
                     onChange={(e) => setEditPrice(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-emerald-400">成本 (NT$)</label>
+                  <input
+                    type="number"
+                    required
+                    value={editCost}
+                    onChange={(e) => setEditCost(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 font-bold focus:outline-none focus:border-emerald-400"
                   />
                 </div>
                 <div className="space-y-1.5">

@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { 
   CheckCircle, Truck, X, ShoppingCart, 
   Radio, Tag, MessageSquare, LogOut, Lock, 
-  Package, ShieldCheck, Sparkles, Clock, CreditCard, Send, MapPin, ExternalLink, Archive, Boxes, Globe, User, Phone, Save, Info, ZoomIn, FileText, ChevronLeft, ChevronRight, Image as ImageIcon
+  Package, ShieldCheck, Sparkles, Clock, CreditCard, Send, MapPin, ExternalLink, Archive, Boxes, Globe, User, Phone, Save, Info, ZoomIn, FileText, ChevronLeft, ChevronRight, Image as ImageIcon, Megaphone, Ticket
 } from 'lucide-react'
 
 interface ProductVariant {
@@ -65,6 +65,16 @@ function StoreContent() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   
+  const [announcement, setAnnouncement] = useState('')
+  const [shippingFeeSetting, setShippingFeeSetting] = useState(60)
+  const [thresholdSetting, setThresholdSetting] = useState(2000)
+  const [isFreeShippingAllSetting, setIsFreeShippingAllSetting] = useState(false)
+
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([])
+  const [myClaimedCoupons, setMyClaimedCoupons] = useState<any[]>([])
+  const [allUserClaimedIds, setAllUserClaimedIds] = useState<string[]>([])
+  const [appliedCoupons, setAppliedCoupons] = useState<Record<string, { id: string; code: string; discount: number }>>({})
+  
   const [activeDetailProduct, setActiveDetailProduct] = useState<Product | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
@@ -88,7 +98,8 @@ function StoreContent() {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   
   const [memberModalOpen, setMemberModalOpen] = useState(false)
-  const [memberTab, setMemberTab] = useState<'profile' | 'contact'>('profile')
+  const [memberTab, setMemberTab] = useState<'profile' | 'coupons' | 'contact'>('profile')
+  const [couponSubTab, setCouponSubTab] = useState<'claim' | 'wallet'>('claim')
   
   const [ordersModalOpen, setOrdersModalOpen] = useState(false)
   const [buyerOrderTab, setBuyerOrderTab] = useState<'active' | 'shipping' | 'shipped' | 'completed'>('active')
@@ -103,6 +114,9 @@ function StoreContent() {
     batch_name: string
     amount: number
     orderIds: string[]
+    couponId?: string
+    couponCode?: string
+    discountAmount?: number
   } | null>(null)
   
   const [bankLast5, setBankLast5] = useState('')
@@ -115,6 +129,8 @@ function StoreContent() {
     fetchBatchesAndProducts()
     checkUserSession()
     loadSavedProfile()
+    fetchSiteSettings()
+    fetchPublicCoupons()
 
     const handleEmapMessage = (event: MessageEvent) => {
       if (event.data && (event.data.fullStoreInfo || event.data.storeName)) {
@@ -133,27 +149,97 @@ function StoreContent() {
   useEffect(() => {
     if (lineUser) {
       fetchCloudCart(lineUser.userId)
+      fetchMyClaimedCoupons(lineUser.userId)
     } else {
       setCart([])
+      setMyClaimedCoupons([])
+      setAllUserClaimedIds([])
     }
   }, [lineUser])
 
-  // 讀取雲端購物車，並自動過濾/清除已結束批次的商品
+  const fetchSiteSettings = async () => {
+    try {
+      const { data } = await supabase.from('site_settings').select('*').eq('id', 1).single()
+      if (data) {
+        setAnnouncement(data.announcement || '')
+        setShippingFeeSetting(Number(data.shipping_fee) || 60)
+        setThresholdSetting(Number(data.free_shipping_threshold) || 2000)
+        setIsFreeShippingAllSetting(Boolean(data.is_free_shipping_all))
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const fetchPublicCoupons = async () => {
+    try {
+      const { data } = await supabase.from('coupons').select('*').eq('is_active', true).order('created_at', { ascending: false })
+      if (data) setAvailableCoupons(data)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const fetchMyClaimedCoupons = async (userId: string) => {
+    try {
+      const { data } = await supabase.from('user_coupons').select('coupon_id, coupons(*)').eq('user_id', userId)
+      if (data) {
+        const list = data.map((item: any) => item.coupons).filter(Boolean)
+        setMyClaimedCoupons(list)
+      }
+
+      const { data: orderData } = await supabase.from('orders').select('note').eq('line_name', lineUser?.displayName || '')
+      const usedCodes: string[] = []
+      if (orderData) {
+        orderData.forEach((ord: any) => {
+          if (ord.note && ord.note.includes('優惠券:')) {
+            const match = ord.note.match(/優惠券:\s*([^,]+)/)
+            if (match) usedCodes.push(match[1].trim())
+          }
+        })
+      }
+
+      const { data: allCoupons } = await supabase.from('coupons').select('id, code')
+      const claimedOrUsedIds: string[] = []
+      if (allCoupons) {
+        allCoupons.forEach(cp => {
+          const inWallet = data?.some((item: any) => item.coupon_id === cp.id)
+          const inHistory = usedCodes.includes(cp.code)
+          if (inWallet || inHistory) {
+            claimedOrUsedIds.push(cp.id)
+          }
+        })
+      }
+      setAllUserClaimedIds(claimedOrUsedIds)
+
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleClaimCoupon = async (coupon: any) => {
+    if (!lineUser) return
+    try {
+      const { error } = await supabase.from('user_coupons').insert([{ user_id: lineUser.userId, coupon_id: coupon.id }])
+      if (error) {
+        if (error.code === '23505') alert('您已經領取過這張優惠券囉！')
+        else throw error
+        return
+      }
+      alert(`🎉 成功領取優惠券「${coupon.code}」！`)
+      await fetchMyClaimedCoupons(lineUser.userId)
+    } catch (err) {
+      console.error(err)
+      alert('領取失敗')
+    }
+  }
+
   const fetchCloudCart = async (userId: string) => {
     try {
-      const { data: batchData } = await supabase
-        .from('batches')
-        .select('id, status')
-      
-      const activeBatchIds = (batchData || [])
-        .filter(b => !b.status || b.status === 'active')
-        .map(b => b.id)
+      const { data: batchData } = await supabase.from('batches').select('id, status')
+      const activeBatchIds = (batchData || []).filter(b => !b.status || b.status === 'active').map(b => b.id)
 
-      const { data, error } = await supabase
-        .from('cart_items')
-        .select('*')
-        .eq('user_id', userId)
-
+      const { data, error } = await supabase.from('cart_items').select('*').eq('user_id', userId)
       if (error) throw error
       if (data) {
         const validItems = []
@@ -164,7 +250,6 @@ function StoreContent() {
             validItems.push(ci)
           }
         }
-
         const mappedCart: CartItem[] = validItems.map((ci: any) => ({
           id: ci.id,
           productId: ci.product_id,
@@ -180,7 +265,7 @@ function StoreContent() {
         setCart(mappedCart)
       }
     } catch (err) {
-      console.error('讀取雲端購物車失敗', err)
+      console.error(err)
     }
   }
 
@@ -206,7 +291,7 @@ function StoreContent() {
     }
     const profileData = { name: savedName, phone: savedPhone, store: savedStore }
     localStorage.setItem('fish_buyer_profile', JSON.stringify(profileData))
-    setProfileSavedMsg('🎉 常用寄件資料已成功儲存！下次結帳將自動帶入。')
+    setProfileSavedMsg('🎉 常用寄件資料已成功儲存！')
     setTimeout(() => setProfileSavedMsg(''), 4000)
   }
 
@@ -215,7 +300,6 @@ function StoreContent() {
       if (typeof window !== 'undefined') {
         const urlParams = new URLSearchParams(window.location.search)
         const userParam = urlParams.get('line_user')
-
         if (userParam) {
           const parsedUser = JSON.parse(decodeURIComponent(userParam))
           saveUserSession(parsedUser)
@@ -223,12 +307,8 @@ function StoreContent() {
           return
         }
       }
-
       const saved = localStorage.getItem('fish_line_user')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        setLineUser(parsed)
-      }
+      if (saved) setLineUser(JSON.parse(saved))
     } catch (e) {
       console.error(e)
     }
@@ -255,15 +335,8 @@ function StoreContent() {
   }
 
   const fetchMyOrders = async (buyerLine: string) => {
-    const { data } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('line_name', buyerLine)
-      .order('created_at', { ascending: false })
-
-    if (data) {
-      setMyOrders(data)
-    }
+    const { data } = await supabase.from('orders').select('*').eq('line_name', buyerLine).order('created_at', { ascending: false })
+    if (data) setMyOrders(data)
   }
 
   const openMemberCenter = () => {
@@ -272,50 +345,33 @@ function StoreContent() {
   }
 
   const openMyOrdersModal = () => {
-    if (lineUser) {
-      fetchMyOrders(lineUser.displayName)
-    }
+    if (lineUser) fetchMyOrders(lineUser.displayName)
     setOrdersModalOpen(true)
   }
 
   const fetchBatchesAndProducts = async () => {
     setLoading(true)
     try {
-      const { data: batchData } = await supabase
-        .from('batches')
-        .select('*')
-        .order('created_at', { ascending: false })
-
+      const { data: batchData } = await supabase.from('batches').select('*').order('created_at', { ascending: false })
       let activeBatchIds: string[] = []
       if (batchData && batchData.length > 0) {
         setBatches(batchData)
-        activeBatchIds = batchData
-          .filter(b => !b.status || b.status === 'active')
-          .map(b => b.id)
+        activeBatchIds = batchData.filter(b => !b.status || b.status === 'active').map(b => b.id)
       }
 
-      const { data: productData, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-
+      const { data: productData, error } = await supabase.from('products').select('*').eq('is_active', true).order('created_at', { ascending: false })
       if (error) throw error
       if (productData) {
-        const validProducts = productData.filter(p => {
-          if (!p.batch_id) return true
-          return activeBatchIds.includes(p.batch_id)
-        })
+        const validProducts = productData.filter(p => !p.batch_id || activeBatchIds.includes(p.batch_id))
         setProducts(validProducts)
       }
     } catch (err) {
-      console.error('抓取資料失敗:', err)
+      console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
-  // 🟢 修正：完全依據資料庫真實儲存的 category 決定分類，不再強制用 batch_id 覆寫
   const getItemType = (p: Product) => {
     if (p.category === 'flash' || p.category === 'LIVE') return 'live'
     if (p.category === 'spot' || p.category === 'SPOT') return 'spot'
@@ -326,11 +382,7 @@ function StoreContent() {
   const getBatchBadgeWithFlag = (batchId?: string) => {
     const batch = batches.find(b => b.id === batchId)
     const name = batch ? batch.name : '各國連線'
-
-    if (/[\u{1F1E6}-\u{1F1FF}]{2}/u.test(name)) {
-      return name
-    }
-
+    if (/[\u{1F1E6}-\u{1F1FF}]{2}/u.test(name)) return name
     if (name.includes('美國') || name.includes('美')) return `🇺🇸 ${name}`
     if (name.includes('韓國') || name.includes('韓')) return `🇰🇷 ${name}`
     if (name.includes('日本') || name.includes('日')) return `🇯🇵 ${name}`
@@ -340,15 +392,11 @@ function StoreContent() {
     return `🌍 ${name}`
   }
 
-  const isSoldOut = (p: Product) => {
-    return p.status === 'sold_out' || p.status === 'SOLDOUT' || p.stock === 0
-  }
+  const isSoldOut = (p: Product) => p.status === 'sold_out' || p.status === 'SOLDOUT' || p.stock === 0
 
   const extractVariants = (product: Product): string[] => {
     if (Array.isArray(product.variants) && product.variants.length > 0) {
-      return product.variants
-        .map((v) => (typeof v === 'string' ? v : v.name))
-        .filter(Boolean)
+      return product.variants.map((v) => (typeof v === 'string' ? v : v.name)).filter(Boolean)
     }
     if (product.spec && !product.spec.includes('_ITEM')) {
       return product.spec.split(/[,，]/).map((s) => s.trim()).filter(Boolean)
@@ -357,12 +405,8 @@ function StoreContent() {
   }
 
   const getProductImages = (p: Product): string[] => {
-    if (Array.isArray(p.image_urls) && p.image_urls.length > 0) {
-      return p.image_urls.filter(Boolean)
-    }
-    if (p.image_url) {
-      return [p.image_url]
-    }
+    if (Array.isArray(p.image_urls) && p.image_urls.length > 0) return p.image_urls.filter(Boolean)
+    if (p.image_url) return [p.image_url]
     return []
   }
 
@@ -376,10 +420,7 @@ function StoreContent() {
     return false
   })
 
-  const displayedProducts =
-    selectedBatchId === 'ALL'
-      ? tabProducts
-      : tabProducts.filter((p) => p.batch_id === selectedBatchId)
+  const displayedProducts = selectedBatchId === 'ALL' ? tabProducts : tabProducts.filter((p) => p.batch_id === selectedBatchId)
 
   const availableBatches = batches.filter((b) => {
     if (b.status === 'ended') return false
@@ -394,8 +435,7 @@ function StoreContent() {
     }
 
     const variants = extractVariants(product)
-    const selectedVariant =
-      selectedVariants[product.id] || (variants.length > 0 ? variants[0] : '')
+    const selectedVariant = selectedVariants[product.id] || (variants.length > 0 ? variants[0] : '')
     const isLive = activeTab === 'live'
     const batch = batches.find((b) => b.id === product.batch_id)
     const images = getProductImages(product)
@@ -404,27 +444,15 @@ function StoreContent() {
     const imgUrlVal = images.length > 0 ? images[0] : null
 
     try {
-      let query = supabase
-        .from('cart_items')
-        .select('*')
-        .eq('user_id', lineUser.userId)
-        .eq('product_id', product.id)
-
-      if (selectedVariant) {
-        query = query.eq('selected_variant', selectedVariant)
-      } else {
-        query = query.is('selected_variant', null)
-      }
+      let query = supabase.from('cart_items').select('*').eq('user_id', lineUser.userId).eq('product_id', product.id)
+      if (selectedVariant) query = query.eq('selected_variant', selectedVariant)
+      else query = query.is('selected_variant', null)
 
       const { data: existing } = await query
 
       if (existing && existing.length > 0) {
         const target = existing[0]
-        const newQty = target.quantity + 1
-        await supabase
-          .from('cart_items')
-          .update({ quantity: newQty })
-          .eq('id', target.id)
+        await supabase.from('cart_items').update({ quantity: target.quantity + 1 }).eq('id', target.id)
       } else {
         await supabase.from('cart_items').insert([{
           user_id: lineUser.userId,
@@ -438,20 +466,14 @@ function StoreContent() {
           batch_name: batchNameVal
         }])
       }
-
       fetchCloudCart(lineUser.userId)
     } catch (err) {
-      console.error('加入購物車失敗', err)
-      alert('加入購物車失敗，請稍後再試')
+      console.error(err)
+      alert('加入購物車失敗')
     }
 
     setActiveDetailProduct(null)
-    setAddedItemModal({
-      name: product.name,
-      variant: selectedVariant,
-      price: product.price,
-      isLive
-    })
+    setAddedItemModal({ name: product.name, variant: selectedVariant, price: product.price, isLive })
   }
 
   const updateQuantity = async (cartItemId: string, delta: number) => {
@@ -460,18 +482,17 @@ function StoreContent() {
 
     const newQty = targetItem.quantity + delta
     try {
-      if (newQty <= 0) {
-        await supabase.from('cart_items').delete().eq('id', cartItemId)
-      } else {
-        await supabase.from('cart_items').update({ quantity: newQty }).eq('id', cartItemId)
-      }
+      if (newQty <= 0) await supabase.from('cart_items').delete().eq('id', cartItemId)
+      else await supabase.from('cart_items').update({ quantity: newQty }).eq('id', cartItemId)
       fetchCloudCart(lineUser.userId)
     } catch (err) {
-      console.error('更新數量失敗', err)
+      console.error(err)
     }
   }
 
-  const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const itemsSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const shippingFee = (isFreeShippingAllSetting || itemsSubtotal >= thresholdSetting || itemsSubtotal === 0) ? 0 : shippingFeeSetting
+  const totalPrice = itemsSubtotal + shippingFee
   const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -489,9 +510,7 @@ function StoreContent() {
       const groupedByBatch: Record<string, CartItem[]> = {}
       cart.forEach((item) => {
         const bId = item.batch_id || 'DEFAULT'
-        if (!groupedByBatch[bId]) {
-          groupedByBatch[bId] = []
-        }
+        if (!groupedByBatch[bId]) groupedByBatch[bId] = []
         groupedByBatch[bId].push(item)
       })
 
@@ -501,17 +520,9 @@ function StoreContent() {
         const batchItems = groupedByBatch[bId]
         const batchName = batchItems[0].batch_name || '連線訂單'
 
-        let query = supabase
-          .from('orders')
-          .select('*')
-          .eq('line_name', currentLineName)
-          .eq('status', 'pending_buy')
-
-        if (bId !== 'DEFAULT') {
-          query = query.eq('batch_id', bId)
-        } else {
-          query = query.is('batch_id', null)
-        }
+        let query = supabase.from('orders').select('*').eq('line_name', currentLineName).eq('status', 'pending_buy')
+        if (bId !== 'DEFAULT') query = query.eq('batch_id', bId)
+        else query = query.is('batch_id', null)
 
         const { data: existingOrders } = await query
 
@@ -540,23 +551,16 @@ function StoreContent() {
             }
           })
 
-          const newTotalAmount = existingItems
-            .filter((it: any) => it.status !== 'failed')
-            .reduce((sum: number, it: any) => sum + (it.price * (it.quantity || 1)), 0)
+          const newSubtotal = existingItems.filter((it: any) => it.status !== 'failed').reduce((sum: number, it: any) => sum + (it.price * (it.quantity || 1)), 0)
+          const newShipping = (isFreeShippingAllSetting || newSubtotal >= thresholdSetting) ? 0 : shippingFeeSetting
+          const newTotalAmount = newSubtotal + newShipping
 
-          const { error: updateError } = await supabase
-            .from('orders')
-            .update({
-              items: existingItems,
-              total_amount: newTotalAmount,
-              total_price: newTotalAmount
-            })
-            .eq('id', targetOrder.id)
-
-          if (updateError) throw updateError
-
+          await supabase.from('orders').update({ items: existingItems, total_amount: newTotalAmount, total_price: newTotalAmount }).eq('id', targetOrder.id)
         } else {
-          const batchTotal = batchItems.reduce((s, it) => s + it.price * it.quantity, 0)
+          const batchSubtotal = batchItems.reduce((s, it) => s + it.price * it.quantity, 0)
+          const batchShipping = (isFreeShippingAllSetting || batchSubtotal >= thresholdSetting) ? 0 : shippingFeeSetting
+          const batchTotal = batchSubtotal + batchShipping
+
           const formattedItems = batchItems.map((item) => ({
             id: item.productId,
             batch_id: item.batch_id || '',
@@ -571,41 +575,31 @@ function StoreContent() {
 
           const orderNo = `ORD-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`
 
-          const { error: orderError } = await supabase.from('orders').insert([
-            {
-              order_no: orderNo,
-              batch_id: bId !== 'DEFAULT' ? bId : null,
-              line_name: currentLineName,
-              buyer_name: currentLineName,
-              customer_name: currentLineName,
-              note: `${batchName}`,
-              buyer_phone: '待結帳確認',
-              customer_phone: '待結帳確認',
-              store_name: '待結帳確認',
-              store_info: '待結帳確認',
-              total_amount: batchTotal,
-              total_price: batchTotal,
-              status: 'pending_buy',
-              pay_status: 'unpaid',
-              ship_status: 'preparing',
-              items: formattedItems
-            }
-          ])
-
-          if (orderError) throw orderError
+          await supabase.from('orders').insert([{
+            order_no: orderNo,
+            batch_id: bId !== 'DEFAULT' ? bId : null,
+            line_name: currentLineName,
+            buyer_name: currentLineName,
+            customer_name: currentLineName,
+            note: `${batchName}`,
+            buyer_phone: '待結帳確認',
+            customer_phone: '待結帳確認',
+            store_name: '待結帳確認',
+            store_info: '待結帳確認',
+            total_amount: batchTotal,
+            total_price: batchTotal,
+            status: 'pending_buy',
+            pay_status: 'unpaid',
+            ship_status: 'preparing',
+            items: formattedItems
+          }])
         }
       }
 
       await supabase.from('cart_items').delete().eq('user_id', lineUser.userId)
       setCart([])
-
       setIsCartOpen(false)
-      setOrderSuccess({
-        lineName: currentLineName,
-        total: totalPrice,
-        count: totalCount,
-        batchCount: batchKeys.length
-      })
+      setOrderSuccess({ lineName: currentLineName, total: totalPrice, count: totalCount, batchCount: batchKeys.length })
     } catch (err: any) {
       console.error(err)
       alert('登記失敗：' + (err.message || '請稍後再試'))
@@ -620,9 +614,21 @@ function StoreContent() {
     window.open(emapUrl, '711_emap', 'width=1000,height=680,toolbar=no,menubar=no,scrollbars=yes')
   }
 
+  const handleSelectCouponToApply = (groupKey: string, coupon: any, subtotal: number) => {
+    if (subtotal < Number(coupon.min_spend)) {
+      alert(`此優惠券需消費滿 NT$ ${coupon.min_spend} 方可使用！`)
+      return
+    }
+    setAppliedCoupons(prev => ({
+      ...prev,
+      [groupKey]: { id: coupon.id, code: coupon.code, discount: Number(coupon.discount_amount) }
+    }))
+    alert(`🎉 成功套用優惠券「${coupon.code}」，折抵 NT$ ${coupon.discount_amount}！`)
+  }
+
   const handleReportPayment = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!payModalBatch) return
+    if (!payModalBatch || !lineUser) return
 
     if (!bankLast5.trim() || !shippingName.trim() || !shippingPhone.trim() || !shippingStore.trim()) {
       alert('請完整填寫所有必填欄位！')
@@ -637,15 +643,11 @@ function StoreContent() {
       return
     }
 
-    const profileData = {
-      name: shippingName.trim(),
-      phone: shippingPhone.trim(),
-      store: shippingStore.trim()
-    }
+    const profileData = { name: shippingName.trim(), phone: shippingPhone.trim(), store: shippingStore.trim() }
     try {
       localStorage.setItem('fish_buyer_profile', JSON.stringify(profileData))
     } catch (err) {
-      console.error('LocalStorage 寫入失敗', err)
+      console.error(err)
     }
 
     setSavedName(shippingName.trim())
@@ -654,6 +656,7 @@ function StoreContent() {
 
     setReportingPay(true)
     try {
+      const couponInfo = payModalBatch.couponCode ? ` (優惠券: ${payModalBatch.couponCode}, 折抵: ${payModalBatch.discountAmount})` : ''
       const { error } = await supabase
         .from('orders')
         .update({
@@ -664,13 +667,25 @@ function StoreContent() {
           customer_phone: shippingPhone.trim(),
           store_name: shippingStore.trim(),
           store_info: shippingStore.trim(),
-          note: `${payModalBatch.batch_name} (已匯款末5碼: ${bankLast5.trim()})`
+          total_amount: payModalBatch.amount,
+          total_price: payModalBatch.amount,
+          note: `${payModalBatch.batch_name} (已匯款末5碼: ${bankLast5.trim()})${couponInfo}`
         })
         .in('id', payModalBatch.orderIds)
 
       if (error) throw error
 
-      alert('匯款與 7-11 寄件資料已成功送出！賣家查帳完成後將立即安排出貨！')
+      if (payModalBatch.couponId) {
+        await supabase
+          .from('user_coupons')
+          .delete()
+          .eq('user_id', lineUser.userId)
+          .eq('coupon_id', payModalBatch.couponId)
+
+        await fetchMyClaimedCoupons(lineUser.userId)
+      }
+
+      alert('匯款與 7-11 寄件資料已成功送出！')
       setPayModalBatch(null)
       setBankLast5('')
       setShippingName('')
@@ -679,7 +694,7 @@ function StoreContent() {
       if (lineUser) fetchMyOrders(lineUser.displayName)
     } catch (err: any) {
       console.error(err)
-      alert(`送出失敗：${err.message || '請確認網路連線或稍後再試'}`)
+      alert(`送出失敗：${err.message || '請稍後再試'}`)
     } finally {
       setReportingPay(false)
     }
@@ -687,8 +702,13 @@ function StoreContent() {
 
   const groupBuyerOrders = () => {
     const grouped: Record<string, {
+      uniqueKey: string
       batch_name: string
       orderIds: string[]
+      items_subtotal: number
+      shipping_fee: number
+      discount_amount: number
+      coupon_code: string
       total_amount: number
       latest_time: string
       isCompleted: boolean
@@ -708,10 +728,28 @@ function StoreContent() {
         if (found) bName = found.name
       }
 
+      let parsedCouponCode = ''
+      let parsedDiscount = 0
+      if (ord.note && ord.note.includes('折抵:')) {
+        try {
+          const matchCode = ord.note.match(/優惠券:\s*([^,]+)/)
+          const matchDisc = ord.note.match(/折抵:\s*([0-9]+)/)
+          if (matchCode) parsedCouponCode = matchCode[1].trim()
+          if (matchDisc) parsedDiscount = Number(matchDisc[1]) || 0
+        } catch (e) {
+          console.error(e)
+        }
+      }
+
       if (!grouped[uniqueGroupKey]) {
         grouped[uniqueGroupKey] = {
+          uniqueKey: uniqueGroupKey,
           batch_name: bName,
           orderIds: [ord.id],
+          items_subtotal: 0,
+          shipping_fee: 0,
+          discount_amount: parsedDiscount,
+          coupon_code: parsedCouponCode,
           total_amount: 0,
           latest_time: ord.created_at,
           isCompleted: false,
@@ -725,6 +763,10 @@ function StoreContent() {
         if (!grouped[uniqueGroupKey].orderIds.includes(ord.id)) {
           grouped[uniqueGroupKey].orderIds.push(ord.id)
         }
+        if (parsedDiscount > grouped[uniqueGroupKey].discount_amount) {
+          grouped[uniqueGroupKey].discount_amount = parsedDiscount
+          grouped[uniqueGroupKey].coupon_code = parsedCouponCode
+        }
       }
 
       if (ord.items && Array.isArray(ord.items)) {
@@ -734,9 +776,7 @@ function StoreContent() {
           const shipStatus = sampleOrd?.status
           const isShippingOrLater = shipStatus === 'shipped' || shipStatus === 'completed'
 
-          if (isShippingOrLater && itStatus === 'failed') {
-            return
-          }
+          if (isShippingOrLater && itStatus === 'failed') return
 
           grouped[uniqueGroupKey].items.push({
             name: it.name,
@@ -750,9 +790,23 @@ function StoreContent() {
     })
 
     Object.values(grouped).forEach((g) => {
-      g.total_amount = g.items
-        .filter(i => i.status !== 'failed')
-        .reduce((sum, i) => sum + (i.price * i.quantity), 0)
+      g.items_subtotal = g.items.filter(i => i.status !== 'failed').reduce((sum, i) => sum + (i.price * i.quantity), 0)
+
+      let currentShipping = 0
+      if (g.items_subtotal > 0) {
+        if (!isFreeShippingAllSetting && g.items_subtotal < thresholdSetting) {
+          currentShipping = shippingFeeSetting
+        }
+      }
+      g.shipping_fee = currentShipping
+
+      const activeApplied = appliedCoupons[g.uniqueKey]
+      const discount = activeApplied ? activeApplied.discount : (g.pay_status !== 'unpaid' ? g.discount_amount : 0)
+      const cCode = activeApplied ? activeApplied.code : (g.pay_status !== 'unpaid' ? g.coupon_code : '')
+
+      g.discount_amount = discount
+      g.coupon_code = cCode
+      g.total_amount = Math.max(0, g.items_subtotal + currentShipping - discount)
 
       const sampleOrd = myOrders.find(o => g.orderIds.includes(o.id))
       const payStatus = sampleOrd?.pay_status
@@ -815,10 +869,7 @@ function StoreContent() {
             <p className="text-slate-400">本次品項：<span className="text-slate-200">{orderSuccess.count} 件</span></p>
             <p className="text-slate-400">預計總額：<span className="text-emerald-400 font-bold font-mono">NT$ {orderSuccess.total.toLocaleString()}</span></p>
           </div>
-          <button
-            onClick={() => setOrderSuccess(null)}
-            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition text-sm cursor-pointer"
-          >
+          <button onClick={() => setOrderSuccess(null)} className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition text-sm cursor-pointer">
             繼續搶其他商品
           </button>
         </div>
@@ -834,11 +885,16 @@ function StoreContent() {
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
         
+        {announcement && (
+          <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-3 flex items-center gap-3 text-amber-300 text-xs md:text-sm font-bold shadow-md">
+            <Megaphone className="w-4 h-4 text-amber-400 flex-shrink-0 animate-bounce" />
+            <span className="leading-relaxed">{announcement}</span>
+          </div>
+        )}
+
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800/80 pb-5">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-emerald-400 flex items-center gap-2">
-              一条魚代購
-            </h1>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-emerald-400 flex items-center gap-2">一条魚代購</h1>
             <p className="text-xs md:text-sm text-slate-400 mt-1 flex items-center gap-1.5 font-medium">
               <Truck className="w-4 h-4 text-emerald-400" /> 即時現場連線・LINE 認證搶單系統
             </p>
@@ -850,34 +906,20 @@ function StoreContent() {
                 {lineUser.pictureUrl ? (
                   <img src={lineUser.pictureUrl} alt={lineUser.displayName} className="w-8 h-8 rounded-full object-cover border border-emerald-500/30" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
-                    {lineUser.displayName[0]}
-                  </div>
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">{lineUser.displayName[0]}</div>
                 )}
                 
-                <button
-                  onClick={openMemberCenter}
-                  className="text-left group cursor-pointer"
-                >
-                  <span className="text-sm font-bold text-slate-200 block max-w-[110px] truncate group-hover:text-emerald-400 transition">
-                    {lineUser.displayName}
-                  </span>
+                <button onClick={openMemberCenter} className="text-left group cursor-pointer">
+                  <span className="text-sm font-bold text-slate-200 block max-w-[110px] truncate group-hover:text-emerald-400 transition">{lineUser.displayName}</span>
                   <span className="text-xs text-emerald-400">會員中心 ›</span>
                 </button>
 
-                <button
-                  onClick={handleLineLogout}
-                  className="text-slate-500 hover:text-rose-400 pl-2.5 border-l border-slate-800 ml-1 cursor-pointer"
-                  title="登出"
-                >
+                <button onClick={handleLineLogout} className="text-slate-500 hover:text-rose-400 pl-2.5 border-l border-slate-800 ml-1 cursor-pointer" title="登出">
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setShowLoginPrompt(true)}
-                className="flex items-center gap-2 bg-[#06C755] hover:bg-[#05b34c] text-white px-4 py-2.5 rounded-2xl text-sm font-bold transition shadow-lg shadow-emerald-950/40 cursor-pointer"
-              >
+              <button onClick={() => setShowLoginPrompt(true)} className="flex items-center gap-2 bg-[#06C755] hover:bg-[#05b34c] text-white px-4 py-2.5 rounded-2xl text-sm font-bold transition shadow-lg shadow-emerald-950/40 cursor-pointer">
                 <MessageSquare className="w-4 h-4 fill-white" />
                 <span>登入 LINE</span>
               </button>
@@ -885,21 +927,14 @@ function StoreContent() {
 
             <button
               onClick={() => {
-                if (!lineUser) {
-                  setShowLoginPrompt(true)
-                } else {
-                  setIsCartOpen(true)
-                }
+                if (!lineUser) setShowLoginPrompt(true)
+                else setIsCartOpen(true)
               }}
               className="relative flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 px-4 py-2.5 rounded-2xl text-sm font-semibold transition cursor-pointer"
             >
               <ShoppingCart className="w-4 h-4" />
               <span>購物車</span>
-              {totalCount > 0 && (
-                <span className="bg-emerald-500 text-slate-950 text-xs px-2 py-0.5 rounded-full font-bold">
-                  {totalCount}
-                </span>
-              )}
+              {totalCount > 0 && <span className="bg-emerald-500 text-slate-950 text-xs px-2 py-0.5 rounded-full font-bold">{totalCount}</span>}
             </button>
           </div>
         </header>
@@ -911,18 +946,11 @@ function StoreContent() {
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm md:text-base font-bold text-white flex items-center gap-2">
-                  🎉 歡迎回來，<span className="text-emerald-400">{lineUser.displayName}</span>！
-                </p>
-                <p className="text-xs md:text-sm text-slate-400 mt-0.5">
-                  批次結束前可隨時追加商品，結束後將開放匯款與 7-11 寄貨資料填寫！
-                </p>
+                <p className="text-sm md:text-base font-bold text-white flex items-center gap-2">🎉 歡迎回來，<span className="text-emerald-400">{lineUser.displayName}</span>！</p>
+                <p className="text-xs md:text-sm text-slate-400 mt-0.5">批次結束前可隨時追加商品，結束後將開放匯款與 7-11 寄貨資料填寫！</p>
               </div>
             </div>
-            <button
-              onClick={openMyOrdersModal}
-              className="text-xs md:text-sm bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 px-4 py-2 rounded-xl font-medium transition whitespace-nowrap self-end sm:self-auto cursor-pointer"
-            >
+            <button onClick={openMyOrdersModal} className="text-xs md:text-sm bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 px-4 py-2 rounded-xl font-medium transition whitespace-nowrap self-end sm:self-auto cursor-pointer">
               查看我的訂單 ›
             </button>
           </div>
@@ -933,66 +961,26 @@ function StoreContent() {
                 <Lock className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm md:text-base font-bold text-slate-200">
-                  您尚未綁定 LINE 帳號
-                </p>
-                <p className="text-xs md:text-sm text-slate-400 mt-0.5">
-                  您可隨意瀏覽現場商品，登記搶單時請一鍵完成 LINE 綁定！
-                </p>
+                <p className="text-sm md:text-base font-bold text-slate-200">您尚未綁定 LINE 帳號</p>
+                <p className="text-xs md:text-sm text-slate-400 mt-0.5">您可隨意瀏覽現場商品，登記搶單時請一鍵完成 LINE 綁定！</p>
               </div>
             </div>
-            <button
-              onClick={() => setShowLoginPrompt(true)}
-              className="text-xs md:text-sm bg-[#06C755] hover:bg-[#05b34c] text-white px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-950/30 whitespace-nowrap self-end sm:self-auto cursor-pointer"
-            >
-              <MessageSquare className="w-4 h-4 fill-white" />
-              立即使用 LINE 一鍵綁定
+            <button onClick={() => setShowLoginPrompt(true)} className="text-xs md:text-sm bg-[#06C755] hover:bg-[#05b34c] text-white px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-950/30 whitespace-nowrap self-end sm:self-auto cursor-pointer">
+              <MessageSquare className="w-4 h-4 fill-white" /> 立即使用 LINE 一鍵綁定
             </button>
           </div>
         )}
 
         <div className="grid grid-cols-3 gap-2.5 p-2 bg-slate-900 border border-slate-800 rounded-2xl">
-          <button
-            onClick={() => {
-              setActiveTab('live')
-              setSelectedBatchId('ALL')
-            }}
-            className={`py-3.5 px-2 rounded-xl text-sm md:text-base font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              activeTab === 'live'
-                ? 'bg-rose-600 text-white shadow-lg shadow-rose-950/40'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
+          <button onClick={() => { setActiveTab('live'); setSelectedBatchId('ALL'); }} className={`py-3.5 px-2 rounded-xl text-sm md:text-base font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'live' ? 'bg-rose-600 text-white shadow-lg shadow-rose-950/40' : 'text-slate-400 hover:text-slate-200'}`}>
             <Radio className={`w-4 h-4 md:w-5 md:h-5 ${activeTab === 'live' ? 'animate-pulse text-white' : 'text-rose-400'}`} />
             <span className="truncate">限時下單 ({liveCount})</span>
           </button>
-
-          <button
-            onClick={() => {
-              setActiveTab('ongoing')
-              setSelectedBatchId('ALL')
-            }}
-            className={`py-3.5 px-2 rounded-xl text-sm md:text-base font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              activeTab === 'ongoing'
-                ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
+          <button onClick={() => { setActiveTab('ongoing'); setSelectedBatchId('ALL'); }} className={`py-3.5 px-2 rounded-xl text-sm md:text-base font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'ongoing' ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20' : 'text-slate-400 hover:text-slate-200'}`}>
             <Globe className="w-4 h-4 md:w-5 md:h-5" />
             <span className="truncate">各國連線 ({ongoingCount})</span>
           </button>
-
-          <button
-            onClick={() => {
-              setActiveTab('spot')
-              setSelectedBatchId('ALL')
-            }}
-            className={`py-3.5 px-2 rounded-xl text-sm md:text-base font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              activeTab === 'spot'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
+          <button onClick={() => { setActiveTab('spot'); setSelectedBatchId('ALL'); }} className={`py-3.5 px-2 rounded-xl text-sm md:text-base font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'spot' ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40' : 'text-slate-400 hover:text-slate-200'}`}>
             <Boxes className="w-4 h-4 md:w-5 md:h-5" />
             <span className="truncate">現貨專區 ({spotCount})</span>
           </button>
@@ -1000,36 +988,13 @@ function StoreContent() {
 
         {availableBatches.length > 0 && (
           <div className="flex gap-2.5 pb-2 overflow-x-auto">
-            <button
-              onClick={() => setSelectedBatchId('ALL')}
-              className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
-                selectedBatchId === 'ALL'
-                  ? activeTab === 'live'
-                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50'
-                    : activeTab === 'ongoing'
-                    ? 'bg-emerald-500 text-slate-950'
-                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
-                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-              }`}
-            >
+            <button onClick={() => setSelectedBatchId('ALL')} className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${selectedBatchId === 'ALL' ? activeTab === 'live' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50' : activeTab === 'ongoing' ? 'bg-emerald-500 text-slate-950' : 'bg-blue-500/20 text-blue-400 border border-blue-500/50' : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'}`}>
               全部 ({tabProducts.length})
             </button>
             {availableBatches.map((b) => {
               const count = tabProducts.filter((p) => p.batch_id === b.id).length
               return (
-                <button
-                  key={b.id}
-                  onClick={() => setSelectedBatchId(b.id)}
-                  className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                    selectedBatchId === b.id
-                      ? activeTab === 'live'
-                        ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50'
-                        : activeTab === 'ongoing'
-                        ? 'bg-emerald-500 text-slate-950'
-                        : 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
-                      : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-                  }`}
-                >
+                <button key={b.id} onClick={() => setSelectedBatchId(b.id)} className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${selectedBatchId === b.id ? activeTab === 'live' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50' : activeTab === 'ongoing' ? 'bg-emerald-500 text-slate-950' : 'bg-blue-500/20 text-blue-400 border border-blue-500/50' : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'}`}>
                   {getBatchBadgeWithFlag(b.id)} ({count})
                 </button>
               )
@@ -1041,11 +1006,7 @@ function StoreContent() {
           <p className="text-slate-500 py-16 text-center text-sm md:text-base">載入商品中...</p>
         ) : displayedProducts.length === 0 ? (
           <div className="bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl p-16 text-center text-slate-400 text-sm md:text-base">
-            {activeTab === 'live'
-              ? '🔴 目前此專區尚未有限時下單商品，請稍候！'
-              : activeTab === 'ongoing'
-              ? '📦 目前此專區尚未有各國連線商品。'
-              : '🏷️ 目前現貨專區尚無商品上架。'}
+            {activeTab === 'live' ? '🔴 目前此專區尚未有限時下單商品，請稍候！' : activeTab === 'ongoing' ? '📦 目前此專區尚未有各國連線商品。' : '🏷️ 目前現貨專區尚無商品上架。'}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1053,15 +1014,11 @@ function StoreContent() {
               const isLive = getItemType(product) === 'live'
               const isSpot = getItemType(product) === 'spot'
               const variants = extractVariants(product)
-              const currentSelected =
-                selectedVariants[product.id] || (variants.length > 0 ? variants[0] : '')
+              const currentSelected = selectedVariants[product.id] || (variants.length > 0 ? variants[0] : '')
               const images = getProductImages(product)
 
               return (
-                <div
-                  key={product.id}
-                  className="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700 transition space-y-4 shadow-lg relative overflow-hidden"
-                >
+                <div key={product.id} className="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700 transition space-y-4 shadow-lg relative overflow-hidden">
                   <div className="absolute top-3 right-3 z-10">
                     {isLive ? (
                       <span className="flex items-center gap-1 bg-rose-500/20 border border-rose-500/50 text-rose-400 text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-md">
@@ -1069,29 +1026,17 @@ function StoreContent() {
                         {product.batch_id ? getBatchBadgeWithFlag(product.batch_id) : '限時下單'}
                       </span>
                     ) : isSpot ? (
-                      <span className="bg-blue-500/20 border border-blue-500/50 text-blue-400 text-xs font-bold px-2.5 py-1 rounded-full">
-                        現貨供應
-                      </span>
+                      <span className="bg-blue-500/20 border border-blue-500/50 text-blue-400 text-xs font-bold px-2.5 py-1 rounded-full">現貨供應</span>
                     ) : (
-                      <span className="bg-slate-800 text-slate-200 text-xs font-bold px-3 py-1 rounded-full border border-slate-700 shadow-sm">
-                        {getBatchBadgeWithFlag(product.batch_id)}
-                      </span>
+                      <span className="bg-slate-800 text-slate-200 text-xs font-bold px-3 py-1 rounded-full border border-slate-700 shadow-sm">{getBatchBadgeWithFlag(product.batch_id)}</span>
                     )}
                   </div>
 
                   <div className="cursor-pointer group" onClick={() => { setActiveDetailProduct(product); setCurrentImageIndex(0); }}>
                     {images.length > 0 ? (
                       <div className="relative overflow-hidden rounded-xl mb-3.5 bg-slate-800">
-                        <img
-                          src={images[0]}
-                          alt={product.name}
-                          className="w-full h-52 object-cover group-hover:scale-105 transition duration-300"
-                        />
-                        {images.length > 1 && (
-                          <span className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-md backdrop-blur-sm flex items-center gap-1">
-                            <ImageIcon className="w-3 h-3" /> {images.length} 張照片
-                          </span>
-                        )}
+                        <img src={images[0]} alt={product.name} className="w-full h-52 object-cover group-hover:scale-105 transition duration-300" />
+                        {images.length > 1 && <span className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-md backdrop-blur-sm flex items-center gap-1"><ImageIcon className="w-3 h-3" /> {images.length} 張照片</span>}
                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold gap-1">
                           <Info className="w-4 h-4 text-emerald-400" /> 點擊查看商品說明
                         </div>
@@ -1102,12 +1047,7 @@ function StoreContent() {
                       </div>
                     )}
                     <h3 className="font-bold text-slate-100 text-lg pr-16 leading-snug group-hover:text-emerald-400 transition">{product.name}</h3>
-
-                    {product.description && (
-                      <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
-                        {product.description}
-                      </p>
-                    )}
+                    {product.description && <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{product.description}</p>}
                   </div>
 
                   <div>
@@ -1121,19 +1061,10 @@ function StoreContent() {
                               <button
                                 key={v}
                                 type="button"
-                                onClick={() =>
-                                  setSelectedVariants((prev) => ({
-                                    ...prev,
-                                    [product.id]: v
-                                  }))
-                                }
+                                onClick={() => setSelectedVariants((prev) => ({ ...prev, [product.id]: v }))}
                                 className={`px-3 py-1.5 rounded-xl text-xs md:text-sm font-medium border transition cursor-pointer ${
                                   isSelected
-                                    ? isLive
-                                      ? 'bg-rose-500/10 border-rose-500 text-rose-400 font-bold'
-                                      : isSpot
-                                      ? 'bg-blue-500/10 border-blue-500 text-blue-400 font-bold'
-                                      : 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
+                                    ? isLive ? 'bg-rose-500/10 border-rose-500 text-rose-400 font-bold' : isSpot ? 'bg-blue-500/10 border-blue-500 text-blue-400 font-bold' : 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
                                     : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:text-white'
                                 }`}
                               >
@@ -1149,19 +1080,13 @@ function StoreContent() {
                   <div className="pt-3.5 border-t border-slate-800/80 flex items-center justify-between">
                     <div>
                       <div className="text-xs text-slate-400 font-medium">代購價</div>
-                      <div className="text-emerald-400 font-black text-xl font-mono">
-                        NT$ {product.price?.toLocaleString()}
-                      </div>
+                      <div className="text-emerald-400 font-black text-xl font-mono">NT$ {product.price?.toLocaleString()}</div>
                     </div>
                     <button
                       type="button"
                       onClick={() => addToCart(product)}
                       className={`px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold text-white shadow-md transition-all cursor-pointer ${
-                        isLive
-                          ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/30'
-                          : isSpot
-                          ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/30'
-                          : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30'
+                        isLive ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/30' : isSpot ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/30' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30'
                       }`}
                     >
                       + 加入購物車
@@ -1178,73 +1103,32 @@ function StoreContent() {
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Info className="w-5 h-5 text-emerald-400" /> 商品詳細說明
-              </h3>
-              <button onClick={() => setActiveDetailProduct(null)} className="text-slate-400 hover:text-slate-200 cursor-pointer p-1">
-                <X className="w-5 h-5" />
-              </button>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2"><Info className="w-5 h-5 text-emerald-400" /> 商品詳細說明</h3>
+              <button onClick={() => setActiveDetailProduct(null)} className="text-slate-400 hover:text-slate-200 cursor-pointer p-1"><X className="w-5 h-5" /></button>
             </div>
-
             {(() => {
               const images = getProductImages(activeDetailProduct)
-              if (images.length === 0) {
-                return (
-                  <div className="w-full h-48 bg-slate-950 rounded-2xl flex items-center justify-center text-slate-500 text-sm">
-                    此商品無圖片
-                  </div>
-                )
-              }
+              if (images.length === 0) return <div className="w-full h-48 bg-slate-950 rounded-2xl flex items-center justify-center text-slate-500 text-sm">此商品無圖片</div>
               const currentImg = images[currentImageIndex] || images[0]
-
               return (
                 <div className="space-y-3">
                   <div className="relative group cursor-pointer overflow-hidden rounded-2xl bg-slate-950 border border-slate-800">
-                    <img
-                      src={currentImg}
-                      alt={activeDetailProduct.name}
-                      className="w-full h-72 object-cover"
-                      onClick={() => setZoomImageSrc(currentImg)}
-                    />
-                    
+                    <img src={currentImg} alt={activeDetailProduct.name} className="w-full h-72 object-cover" onClick={() => setZoomImageSrc(currentImg)} />
                     {images.length > 1 && (
                       <>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1)); }}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md transition cursor-pointer"
-                        >
-                          <ChevronLeft className="w-5 h-5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1)); }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md transition cursor-pointer"
-                        >
-                          <ChevronRight className="w-5 h-5" />
-                        </button>
-                        <span className="absolute top-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-md font-mono">
-                          {currentImageIndex + 1} / {images.length}
-                        </span>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1)); }} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md transition cursor-pointer"><ChevronLeft className="w-5 h-5" /></button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1)); }} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md transition cursor-pointer"><ChevronRight className="w-5 h-5" /></button>
+                        <span className="absolute top-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-md font-mono">{currentImageIndex + 1} / {images.length}</span>
                       </>
                     )}
-
                     <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-3 py-1.5 rounded-xl backdrop-blur-md flex items-center gap-1.5 pointer-events-none">
                       <ZoomIn className="w-4 h-4 text-emerald-400" /> 點擊圖片放大檢視細節
                     </div>
                   </div>
-
                   {images.length > 1 && (
                     <div className="flex gap-2 overflow-x-auto pb-1">
                       {images.map((img, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setCurrentImageIndex(idx)}
-                          className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 flex-shrink-0 cursor-pointer transition ${
-                            currentImageIndex === idx ? 'border-emerald-500 scale-105' : 'border-slate-800 opacity-60 hover:opacity-100'
-                          }`}
-                        >
+                        <button key={idx} type="button" onClick={() => setCurrentImageIndex(idx)} className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 flex-shrink-0 cursor-pointer transition ${currentImageIndex === idx ? 'border-emerald-500 scale-105' : 'border-slate-800 opacity-60 hover:opacity-100'}`}>
                           <img src={img} alt={`縮圖 ${idx}`} className="w-full h-full object-cover" />
                         </button>
                       ))}
@@ -1253,13 +1137,9 @@ function StoreContent() {
                 </div>
               )
             })()}
-
             <div className="space-y-3">
               <h2 className="text-xl font-bold text-slate-100">{activeDetailProduct.name}</h2>
-              <div className="text-emerald-400 font-mono font-black text-2xl">
-                NT$ {activeDetailProduct.price?.toLocaleString()}
-              </div>
-
+              <div className="text-emerald-400 font-mono font-black text-2xl">NT$ {activeDetailProduct.price?.toLocaleString()}</div>
               {extractVariants(activeDetailProduct).length > 0 && (
                 <div className="space-y-1.5 pt-2">
                   <span className="text-xs text-slate-400 block font-medium">選擇規格：</span>
@@ -1267,21 +1147,7 @@ function StoreContent() {
                     {extractVariants(activeDetailProduct).map((v) => {
                       const isSelected = (selectedVariants[activeDetailProduct.id] || extractVariants(activeDetailProduct)[0]) === v
                       return (
-                        <button
-                          key={v}
-                          type="button"
-                          onClick={() =>
-                            setSelectedVariants((prev) => ({
-                              ...prev,
-                              [activeDetailProduct.id]: v
-                            }))
-                          }
-                          className={`px-3.5 py-2 rounded-xl text-xs md:text-sm font-medium border transition cursor-pointer ${
-                            isSelected
-                              ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
-                              : 'bg-slate-950 border-slate-800 text-slate-300 hover:text-white'
-                          }`}
-                        >
+                        <button key={v} type="button" onClick={() => setSelectedVariants((prev) => ({ ...prev, [activeDetailProduct.id]: v }))} className={`px-3.5 py-2 rounded-xl text-xs md:text-sm font-medium border transition cursor-pointer ${isSelected ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold' : 'bg-slate-950 border-slate-800 text-slate-300 hover:text-white'}`}>
                           {isSelected ? '✓ ' : ''}{v}
                         </button>
                       )
@@ -1289,23 +1155,13 @@ function StoreContent() {
                   </div>
                 </div>
               )}
-
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
-                <p className="text-xs font-bold text-slate-400 flex items-center gap-1">
-                  <FileText className="w-3.5 h-3.5 text-emerald-400" /> 產品介紹與規格說明
-                </p>
-                <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">
-                  {activeDetailProduct.description || '賣家尚未填寫此商品的詳細說明。'}
-                </p>
+                <p className="text-xs font-bold text-slate-400 flex items-center gap-1"><FileText className="w-3.5 h-3.5 text-emerald-400" /> 產品介紹與規格說明</p>
+                <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">{activeDetailProduct.description || '賣家尚未填寫此商品的詳細說明。'}</p>
               </div>
             </div>
-
             <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => addToCart(activeDetailProduct)}
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl text-sm transition shadow-lg shadow-emerald-950/40 cursor-pointer flex items-center justify-center gap-2"
-              >
+              <button type="button" onClick={() => addToCart(activeDetailProduct)} className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl text-sm transition shadow-lg shadow-emerald-950/40 cursor-pointer flex items-center justify-center gap-2">
                 <ShoppingCart className="w-4 h-4" /> + 加入購物車
               </button>
             </div>
@@ -1315,9 +1171,7 @@ function StoreContent() {
 
       {zoomImageSrc && (
         <div className="fixed inset-0 bg-black/95 flex items-center justify-center p-4 z-[60]" onClick={() => setZoomImageSrc(null)}>
-          <button onClick={() => setZoomImageSrc(null)} className="absolute top-5 right-5 text-white bg-slate-800/80 hover:bg-slate-700 p-2.5 rounded-full cursor-pointer z-10">
-            <X className="w-6 h-6" />
-          </button>
+          <button onClick={() => setZoomImageSrc(null)} className="absolute top-5 right-5 text-white bg-slate-800/80 hover:bg-slate-700 p-2.5 rounded-full cursor-pointer z-10"><X className="w-6 h-6" /></button>
           <img src={zoomImageSrc} alt="放大細節圖" className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl" />
         </div>
       )}
@@ -1328,36 +1182,21 @@ function StoreContent() {
             <div className="w-16 h-16 bg-[#06C755]/10 border border-[#06C755]/20 rounded-2xl flex items-center justify-center mx-auto text-[#06C755]">
               <MessageSquare className="w-8 h-8 fill-[#06C755]" />
             </div>
-
             <div className="space-y-1.5">
               <h3 className="text-lg font-bold text-slate-100">需綁定 LINE 帳號</h3>
-              <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-                本系統採 LINE 實名搶單，採購成功後將透過 LINE 官方即時通知您確認明細與結帳！
-              </p>
+              <p className="text-xs md:text-sm text-slate-300 leading-relaxed">本系統採 LINE 實名搶單，採購成功後將透過 LINE 官方即時通知您確認明細與結帳！</p>
             </div>
-
             <div className="space-y-3 pt-2">
-              <button
-                type="button"
-                onClick={handleLineLogin}
-                className="w-full py-3.5 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold rounded-2xl text-sm flex items-center justify-center gap-2 transition shadow-xl shadow-emerald-950/40 cursor-pointer"
-              >
-                <MessageSquare className="w-4 h-4 fill-white" />
-                使用 LINE 帳號一鍵授權登入
+              <button type="button" onClick={handleLineLogin} className="w-full py-3.5 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold rounded-2xl text-sm flex items-center justify-center gap-2 transition shadow-xl shadow-emerald-950/40 cursor-pointer">
+                <MessageSquare className="w-4 h-4 fill-white" /> 使用 LINE 帳號一鍵授權登入
               </button>
-
-              <button
-                type="button"
-                onClick={() => setShowLoginPrompt(false)}
-                className="w-full py-2.5 text-slate-400 hover:text-slate-200 text-xs md:text-sm transition cursor-pointer"
-              >
-                先逛逛其他商品
-              </button>
+              <button type="button" onClick={() => setShowLoginPrompt(false)} className="w-full py-2.5 text-slate-400 hover:text-slate-200 text-xs md:text-sm transition cursor-pointer">先逛逛其他商品</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* 會員中心 Modal */}
       {memberModalOpen && lineUser && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -1367,114 +1206,119 @@ function StoreContent() {
                 {lineUser.pictureUrl ? (
                   <img src={lineUser.pictureUrl} alt={lineUser.displayName} className="w-11 h-11 rounded-full border border-emerald-500/30 object-cover" />
                 ) : (
-                  <div className="w-11 h-11 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-base">
-                    {lineUser.displayName[0]}
-                  </div>
+                  <div className="w-11 h-11 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-base">{lineUser.displayName[0]}</div>
                 )}
                 <div>
                   <h2 className="text-base md:text-lg font-bold text-slate-100">{lineUser.displayName}</h2>
-                  <p className="text-xs text-emerald-400 flex items-center gap-1 mt-0.5">
-                    <ShieldCheck className="w-4 h-4" /> LINE 認證會員・會員中心
-                  </p>
+                  <p className="text-xs text-emerald-400 flex items-center gap-1 mt-0.5"><ShieldCheck className="w-4 h-4" /> LINE 認證會員・會員中心</p>
                 </div>
               </div>
-              <button onClick={() => setMemberModalOpen(false)} className="text-slate-400 hover:text-slate-200 p-1 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
+              <button onClick={() => setMemberModalOpen(false)} className="text-slate-400 hover:text-slate-200 p-1 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs font-bold">
-              <button
-                onClick={() => setMemberTab('profile')}
-                className={`py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                  memberTab === 'profile' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <MapPin className="w-3.5 h-3.5" /> 常用寄件資料
+            <div className="grid grid-cols-3 gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs font-bold">
+              <button onClick={() => setMemberTab('profile')} className={`py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1 ${memberTab === 'profile' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}>
+                <MapPin className="w-3.5 h-3.5" /> 常用寄件
               </button>
-              <button
-                onClick={() => setMemberTab('contact')}
-                className={`py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                  memberTab === 'contact' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <MessageSquare className="w-3.5 h-3.5" /> 官方客服
+              <button onClick={() => setMemberTab('coupons')} className={`py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1 ${memberTab === 'coupons' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}>
+                <Ticket className="w-3.5 h-3.5" /> 優惠券錢包
+              </button>
+              <button onClick={() => setMemberTab('contact')} className={`py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1 ${memberTab === 'contact' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}>
+                <MessageSquare className="w-3.5 h-3.5" /> 客服
               </button>
             </div>
 
             {memberTab === 'profile' ? (
               <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
                 <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 text-slate-300 space-y-1">
-                  <p className="font-bold text-emerald-400 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5" /> 常用 7-11 寄件資料設定
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    在此預先設定您的真實姓名、電話與常備 7-11 門市，下次結帳將自動帶入！
-                  </p>
+                  <p className="font-bold text-emerald-400 flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> 常用 7-11 寄件資料設定</p>
+                  <p className="text-[11px] text-slate-400">在此預先設定您的真實姓名、電話與常備 7-11 門市，下次結帳將自動帶入！</p>
                 </div>
-
-                {profileSavedMsg && (
-                  <div className="bg-emerald-950/50 border border-emerald-500/40 text-emerald-400 p-3 rounded-xl font-bold">
-                    {profileSavedMsg}
-                  </div>
-                )}
-
+                {profileSavedMsg && <div className="bg-emerald-950/50 border border-emerald-500/40 text-emerald-400 p-3 rounded-xl font-bold">{profileSavedMsg}</div>}
                 <div className="space-y-3">
                   <div>
                     <label className="text-slate-300 block mb-1">真實姓名 (領件核對證件) <span className="text-rose-500">*必填</span></label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="例：林小魚"
-                      value={savedName}
-                      onChange={(e) => setSavedName(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-400"
-                    />
+                    <input type="text" required placeholder="例：林小魚" value={savedName} onChange={(e) => setSavedName(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-400" />
                   </div>
-
                   <div>
                     <label className="text-slate-300 block mb-1">手機號碼 (10碼，09開頭) <span className="text-rose-500">*必填</span></label>
-                    <input
-                      type="tel"
-                      required
-                      maxLength={10}
-                      placeholder="例：0912345678"
-                      value={savedPhone}
-                      onChange={(e) => setSavedPhone(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 font-mono focus:outline-none focus:border-emerald-400"
-                    />
+                    <input type="tel" required maxLength={10} placeholder="例：0912345678" value={savedPhone} onChange={(e) => setSavedPhone(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 font-mono focus:outline-none focus:border-emerald-400" />
                   </div>
-
                   <div>
                     <div className="flex justify-between items-center mb-1">
                       <label className="text-slate-300">常備 7-11 門市 <span className="text-rose-500">*必填</span></label>
-                      <button
-                        type="button"
-                        onClick={open711Map}
-                        className="text-amber-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
-                      >
-                        🗺️ 地圖選門市 <ExternalLink className="w-3 h-3" />
-                      </button>
+                      <button type="button" onClick={open711Map} className="text-amber-400 hover:underline flex items-center gap-1 font-medium cursor-pointer">🗺️ 地圖選門市 <ExternalLink className="w-3 h-3" /></button>
                     </div>
-                    <input
-                      type="text"
-                      required
-                      readOnly
-                      onClick={open711Map}
-                      placeholder="點擊上方按鈕選擇 7-11 門市"
-                      value={savedStore}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-emerald-300 font-medium cursor-pointer"
-                    />
+                    <input type="text" required readOnly onClick={open711Map} placeholder="點擊上方按鈕選擇 7-11 門市" value={savedStore} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-emerald-300 font-medium cursor-pointer" />
                   </div>
                 </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                >
+                <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
                   <Save className="w-4 h-4" /> 儲存常用寄件資料
                 </button>
               </form>
+            ) : memberTab === 'coupons' ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                  <button
+                    onClick={() => setCouponSubTab('claim')}
+                    className={`py-2 rounded-lg font-bold transition cursor-pointer ${couponSubTab === 'claim' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    🎁 領取優惠券 ({availableCoupons.filter(c => !myClaimedCoupons.some(mc => mc.id === c.id) && !allUserClaimedIds.includes(c.id)).length})
+                  </button>
+                  <button
+                    onClick={() => setCouponSubTab('wallet')}
+                    className={`py-2 rounded-lg font-bold transition cursor-pointer ${couponSubTab === 'wallet' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    🎟️ 我的優惠券錢包 ({myClaimedCoupons.length})
+                  </button>
+                </div>
+
+                {couponSubTab === 'claim' ? (
+                  <div className="space-y-2.5 max-h-[45vh] overflow-y-auto pr-1">
+                    {availableCoupons.filter(c => !myClaimedCoupons.some(mc => mc.id === c.id) && !allUserClaimedIds.includes(c.id)).length === 0 ? (
+                      <div className="text-center py-10 text-xs text-slate-500">目前沒有可領取的優惠券（或您已全數領取並使用過）</div>
+                    ) : (
+                      availableCoupons
+                        .filter(c => !myClaimedCoupons.some(mc => mc.id === c.id) && !allUserClaimedIds.includes(c.id))
+                        .map((c) => (
+                          <div key={c.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between text-xs">
+                            <div className="space-y-1">
+                              <span className="font-mono font-bold text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-500/30">{c.code}</span>
+                              <div className="text-white font-bold mt-1">折抵 NT$ {c.discount_amount}</div>
+                              <div className="text-[11px] text-slate-500">滿 NT$ {c.min_spend} 可使用</div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleClaimCoupon(c)}
+                              className="px-4 py-2 rounded-xl font-bold transition text-xs cursor-pointer bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
+                            >
+                              立即領取
+                            </button>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 max-h-[45vh] overflow-y-auto pr-1">
+                    {myClaimedCoupons.length === 0 ? (
+                      <div className="text-center py-10 text-xs text-slate-500">您的錢包目前沒有優惠券，快去左側領取吧！</div>
+                    ) : (
+                      myClaimedCoupons.map((mc) => (
+                        <div key={mc.id} className="bg-slate-950 border border-emerald-500/30 rounded-2xl p-3.5 flex items-center justify-between text-xs">
+                          <div className="space-y-1">
+                            <span className="font-mono font-bold text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-500/30">{mc.code}</span>
+                            <div className="text-white font-bold mt-1">折抵 NT$ {mc.discount_amount}</div>
+                            <div className="text-[11px] text-slate-500">滿 NT$ {mc.min_spend} 可使用</div>
+                          </div>
+                          <span className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-xl font-bold text-[11px]">
+                            ✓ 可使用
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="space-y-4 text-center py-4">
                 <div className="w-16 h-16 bg-[#06C755]/10 border border-[#06C755]/30 rounded-full flex items-center justify-center mx-auto text-[#06C755]">
@@ -1482,16 +1326,10 @@ function StoreContent() {
                 </div>
                 <div className="space-y-1.5">
                   <h3 className="text-base font-bold text-white">需要協助或修改訂單嗎？</h3>
-                  <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
-                    若您有任何商品問題、需要更改 7-11 門市或查詢匯款進度，歡迎隨時透過 LINE 官方客服與我們聯繫！
-                  </p>
+                  <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">若您有任何商品問題、需要更改 7-11 門市或查詢匯款進度，歡迎隨時透過 LINE 官方客服與我們聯繫！</p>
                 </div>
-                <a
-                  href="https://line.me"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 w-full py-3.5 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold rounded-2xl text-sm transition shadow-lg shadow-emerald-950/40 cursor-pointer"
-                >
+                {/* 🟢 使用 line://ti/p/@146vimco 或 https://line.me/R/ti/p/@146vimco 以直接啟動 App 加好友 */}
+                <a href="https://line.me/R/ti/p/@146vimco" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 w-full py-3.5 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold rounded-2xl text-sm transition shadow-lg shadow-emerald-950/40 cursor-pointer">
                   <MessageSquare className="w-4 h-4 fill-white" /> 點擊加入 LINE 官方客服
                 </a>
               </div>
@@ -1501,6 +1339,7 @@ function StoreContent() {
         </div>
       )}
 
+      {/* 我的訂單 Modal */}
       {ordersModalOpen && lineUser && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -1510,127 +1349,120 @@ function StoreContent() {
                 <Package className="w-6 h-6 text-emerald-400" />
                 <h2 className="text-base md:text-lg font-bold text-slate-100">我的訂單與採買進度</h2>
               </div>
-              <button onClick={() => setOrdersModalOpen(false)} className="text-slate-400 hover:text-slate-200 p-1 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
+              <button onClick={() => setOrdersModalOpen(false)} className="text-slate-400 hover:text-slate-200 p-1 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-              <button
-                onClick={() => setBuyerOrderTab('active')}
-                className={`py-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                  buyerOrderTab === 'active' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'
-                }`}
-              >
-                進行中 ({activeBuyerOrders.length})
-              </button>
-              <button
-                onClick={() => setBuyerOrderTab('shipping')}
-                className={`py-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                  buyerOrderTab === 'shipping' ? 'bg-slate-800 text-blue-400' : 'text-slate-400'
-                }`}
-              >
-                準備出貨 ({shippingBuyerOrders.length})
-              </button>
-              <button
-                onClick={() => setBuyerOrderTab('shipped')}
-                className={`py-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                  buyerOrderTab === 'shipped' ? 'bg-slate-800 text-purple-400' : 'text-slate-400'
-                }`}
-              >
-                已出貨 ({shippedBuyerOrders.length})
-              </button>
-              <button
-                onClick={() => setBuyerOrderTab('completed')}
-                className={`py-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                  buyerOrderTab === 'completed' ? 'bg-slate-800 text-slate-200' : 'text-slate-400'
-                }`}
-              >
-                已完成 ({completedBuyerOrders.length})
-              </button>
+              <button onClick={() => setBuyerOrderTab('active')} className={`py-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${buyerOrderTab === 'active' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'}`}>進行中 ({activeBuyerOrders.length})</button>
+              <button onClick={() => setBuyerOrderTab('shipping')} className={`py-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${buyerOrderTab === 'shipping' ? 'bg-slate-800 text-blue-400' : 'text-slate-400'}`}>準備出貨 ({shippingBuyerOrders.length})</button>
+              <button onClick={() => setBuyerOrderTab('shipped')} className={`py-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${buyerOrderTab === 'shipped' ? 'bg-slate-800 text-purple-400' : 'text-slate-400'}`}>已出貨 ({shippedBuyerOrders.length})</button>
+              <button onClick={() => setBuyerOrderTab('completed')} className={`py-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${buyerOrderTab === 'completed' ? 'bg-slate-800 text-slate-200' : 'text-slate-400'}`}>已完成 ({completedBuyerOrders.length})</button>
             </div>
 
             <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
               {displayedBuyerOrders.length === 0 ? (
-                <div className="bg-slate-950/60 p-10 rounded-2xl text-center border border-slate-800 text-slate-400 text-xs">
-                  目前沒有此分類的訂單紀錄
-                </div>
+                <div className="bg-slate-950/60 p-10 rounded-2xl text-center border border-slate-800 text-slate-400 text-xs">目前沒有此分類的訂單紀錄</div>
               ) : (
-                displayedBuyerOrders.map((g, idx) => (
-                  <div key={idx} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3 text-xs">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                      <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded font-bold">
-                        {g.batch_name}
-                      </span>
-                      <span className="font-mono text-emerald-400 font-bold text-sm">
-                        NT$ {g.total_amount.toLocaleString()}
-                      </span>
-                    </div>
+                displayedBuyerOrders.map((g, idx) => {
+                  const currentShipping = g.shipping_fee
+                  const appliedCoupon = appliedCoupons[g.uniqueKey]
+                  const displayDiscount = appliedCoupon ? appliedCoupon.discount : g.discount_amount
+                  const displayCouponCode = appliedCoupon ? appliedCoupon.code : g.coupon_code
 
-                    <div className="space-y-2">
-                      {g.items.map((it, iIdx) => {
-                        const isBought = it.status === 'bought'
-                        const isFailed = it.status === 'failed'
+                  return (
+                    <div key={idx} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3 text-xs">
+                      <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded font-bold">{g.batch_name}</span>
+                        <div className="text-right font-mono">
+                          <span className="text-[11px] text-slate-400">
+                            小計 NT$ {g.items_subtotal.toLocaleString()} + 運費 <span className="text-amber-400">{currentShipping === 0 ? '免運' : `NT$ ${currentShipping}`}</span>
+                            {displayDiscount > 0 && <span className="text-rose-400"> - 優惠({displayCouponCode}) NT$ {displayDiscount}</span>} = 
+                          </span>
+                          <span className="text-emerald-400 font-bold text-sm ml-1">NT$ {g.total_amount.toLocaleString()}</span>
+                        </div>
+                      </div>
 
-                        return (
-                          <div key={iIdx} className="flex justify-between items-center text-slate-200">
-                            <div className="flex items-center gap-2">
-                              <span className={`font-medium ${isFailed ? 'line-through text-slate-500' : ''}`}>
-                                • {it.name} {it.variant ? `(${it.variant})` : ''} × {it.quantity}
-                              </span>
-                              {isBought && (
-                                <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded font-bold">
-                                  ✓ 買到
-                                </span>
-                              )}
-                              {isFailed && (
-                                <span className="bg-rose-500/20 text-rose-400 text-[10px] px-2 py-0.5 rounded font-bold">
-                                  ✕ 缺貨
-                                </span>
-                              )}
-                              {!isBought && !isFailed && (
-                                <span className="bg-amber-500/20 text-amber-400 text-[10px] px-2 py-0.5 rounded font-bold">
-                                  ⏳ 搶單中
-                                </span>
-                              )}
+                      <div className="space-y-2">
+                        {g.items.map((it, iIdx) => {
+                          const isBought = it.status === 'bought'
+                          const isFailed = it.status === 'failed'
+                          return (
+                            <div key={iIdx} className="flex justify-between items-center text-slate-200">
+                              <div className="flex items-center gap-2">
+                                <span className={`font-medium ${isFailed ? 'line-through text-slate-500' : ''}`}>• {it.name} {it.variant ? `(${it.variant})` : ''} × {it.quantity}</span>
+                                {isBought && <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded font-bold">✓ 買到</span>}
+                                {isFailed && <span className="bg-rose-500/20 text-rose-400 text-[10px] px-2 py-0.5 rounded font-bold">✕ 缺貨</span>}
+                                {!isBought && !isFailed && <span className="bg-amber-500/20 text-amber-400 text-[10px] px-2 py-0.5 rounded font-bold">⏳ 搶單中</span>}
+                              </div>
+                              <span className={`font-mono ${isFailed ? 'line-through text-slate-500' : 'text-emerald-400 font-bold'}`}>NT$ {it.price * it.quantity}</span>
                             </div>
+                          )
+                        })}
+                      </div>
 
-                            <span className={`font-mono ${isFailed ? 'line-through text-slate-500' : 'text-emerald-400 font-bold'}`}>
-                              NT$ {it.price * it.quantity}
-                            </span>
+                      {g.overallState === 'ready_to_pay' && !appliedCoupon && myClaimedCoupons.length > 0 && (
+                        <div className="pt-2 border-t border-slate-800 space-y-1">
+                          <span className="text-[11px] text-slate-400 block font-medium">✨ 選擇您錢包中的優惠券：</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {myClaimedCoupons.map((mc) => (
+                              <button
+                                key={mc.id}
+                                type="button"
+                                onClick={() => handleSelectCouponToApply(g.uniqueKey, mc, g.items_subtotal)}
+                                className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-500/40 text-emerald-400 rounded-lg text-[11px] font-bold transition cursor-pointer"
+                              >
+                                🎟️ {mc.code} (折${mc.discount_amount})
+                              </button>
+                            ))}
                           </div>
-                        )
-                      })}
+                        </div>
+                      )}
+
+                      {displayDiscount > 0 && (
+                        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-2.5 rounded-xl text-xs font-bold flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Ticket className="w-4 h-4 text-emerald-400" />
+                            已使用優惠券：<strong>{displayCouponCode}</strong> (折抵 NT$ {displayDiscount})
+                          </span>
+                          {g.overallState === 'ready_to_pay' && appliedCoupon && (
+                            <button onClick={() => setAppliedCoupons(prev => { const copy = {...prev}; delete copy[g.uniqueKey]; return copy; })} className="text-rose-400 hover:underline text-[11px]">移除</button>
+                          )}
+                        </div>
+                      )}
+
+                      {g.pay_status === 'reported' && (
+                        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5">
+                          <Clock className="w-4 h-4 animate-pulse" /> ⏳ 匯款資訊已送出，等待賣家查帳中...
+                        </div>
+                      )}
+
+                      {g.overallState === 'ready_to_pay' && (
+                        <div className="pt-2 border-t border-slate-800 flex justify-end">
+                          <button
+                            onClick={() => {
+                              const coupon = appliedCoupons[g.uniqueKey]
+                              setOrdersModalOpen(false)
+                              setPayModalBatch({
+                                batch_name: g.batch_name,
+                                amount: g.total_amount,
+                                orderIds: g.orderIds,
+                                couponId: coupon?.id,
+                                couponCode: coupon?.code,
+                                discountAmount: coupon?.discount
+                              })
+                              setShippingName(savedName)
+                              setShippingPhone(savedPhone)
+                              setShippingStore(savedStore)
+                            }}
+                            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-md"
+                          >
+                            <CreditCard className="w-4 h-4" /> 匯款與填寫取件門市
+                          </button>
+                        </div>
+                      )}
                     </div>
-
-                    {g.pay_status === 'reported' && (
-                      <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5">
-                        <Clock className="w-4 h-4 animate-pulse" /> ⏳ 匯款資訊已送出，等待賣家查帳中...
-                      </div>
-                    )}
-
-                    {g.overallState === 'ready_to_pay' && (
-                      <div className="pt-2 border-t border-slate-800 flex justify-end">
-                        <button
-                          onClick={() => {
-                            setOrdersModalOpen(false)
-                            setPayModalBatch({
-                              batch_name: g.batch_name,
-                              amount: g.total_amount,
-                              orderIds: g.orderIds
-                            })
-                            setShippingName(savedName)
-                            setShippingPhone(savedPhone)
-                            setShippingStore(savedStore)
-                          }}
-                          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-md"
-                        >
-                          <CreditCard className="w-4 h-4" /> 匯款與填寫取件門市
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
 
@@ -1643,21 +1475,17 @@ function StoreContent() {
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Truck className="w-5 h-5 text-emerald-400" />
-                {payModalBatch.batch_name}・結帳轉帳
+                <Truck className="w-5 h-5 text-emerald-400" /> {payModalBatch.batch_name}・結帳轉帳
               </h3>
-              <button onClick={() => setPayModalBatch(null)} className="text-slate-400 hover:text-slate-200">
-                <X className="w-5 h-5" />
-              </button>
+              <button onClick={() => setPayModalBatch(null)} className="text-slate-400 hover:text-slate-200"><X className="w-5 h-5" /></button>
             </div>
 
             <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-sm space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">本次應匯總額</span>
-                <span className="text-emerald-400 font-mono font-bold text-xl">
-                  NT$ {payModalBatch.amount.toLocaleString()}
-                </span>
+                <span className="text-slate-400">本次應匯總額 (含運與折扣)</span>
+                <span className="text-emerald-400 font-mono font-bold text-xl">NT$ {payModalBatch.amount.toLocaleString()}</span>
               </div>
+              {payModalBatch.couponCode && <div className="text-xs text-rose-400">* 已使用優惠券「{payModalBatch.couponCode}」折抵 NT$ {payModalBatch.discountAmount}（送出後將自動自錢包移除）</div>}
               <div className="pt-2 border-t border-slate-800/80 text-xs text-slate-300 space-y-1.5">
                 <p>🏦 銀行代碼：<span className="text-white font-mono font-bold">822 (中國信託)</span></p>
                 <p>💳 匯款帳號：<span className="text-white font-mono font-bold">1234-5678-9012</span></p>
@@ -1667,35 +1495,15 @@ function StoreContent() {
 
             <form onSubmit={handleReportPayment} className="space-y-4 text-sm">
               <div>
-                <label className="text-slate-300 block mb-1.5 font-medium text-xs">
-                  匯款完成後，請輸入帳號末五碼（剛好 5 碼） <span className="text-rose-500">*必填</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  maxLength={5}
-                  placeholder="例：88990"
-                  value={bankLast5}
-                  onChange={(e) => setBankLast5(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 font-mono text-center tracking-widest text-base focus:outline-none focus:border-emerald-400"
-                />
+                <label className="text-slate-300 block mb-1.5 font-medium text-xs">匯款完成後，請輸入帳號末五碼（剛好 5 碼） <span className="text-rose-500">*必填</span></label>
+                <input type="text" required maxLength={5} placeholder="例：88990" value={bankLast5} onChange={(e) => setBankLast5(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 font-mono text-center tracking-widest text-base focus:outline-none focus:border-emerald-400" />
               </div>
 
               <div className="pt-3 border-t border-slate-800 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
-                    <MapPin className="w-4 h-4" /> 7-11 寄貨資料（0 元包裹純取貨）
-                  </span>
+                  <span className="text-xs text-emerald-400 font-bold flex items-center gap-1"><MapPin className="w-4 h-4" /> 7-11 寄貨資料（0 元包裹純取貨）</span>
                   {savedName && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShippingName(savedName)
-                        setShippingPhone(savedPhone)
-                        setShippingStore(savedStore)
-                      }}
-                      className="text-[11px] bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg font-bold hover:bg-emerald-500/30 cursor-pointer"
-                    >
+                    <button type="button" onClick={() => { setShippingName(savedName); setShippingPhone(savedPhone); setShippingStore(savedStore); }} className="text-[11px] bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg font-bold hover:bg-emerald-500/30 cursor-pointer">
                       ⚡ 一鍵代入常用資料
                     </button>
                   )}
@@ -1703,60 +1511,27 @@ function StoreContent() {
 
                 <div>
                   <label className="text-slate-300 block mb-1 text-xs">取件人真實姓名 (領件需核對證件) <span className="text-rose-500">*必填</span></label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="例：林小魚"
-                    value={shippingName}
-                    onChange={(e) => setShippingName(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-emerald-400 text-xs md:text-sm"
-                  />
+                  <input type="text" required placeholder="例：林小魚" value={shippingName} onChange={(e) => setShippingName(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-emerald-400 text-xs md:text-sm" />
                 </div>
 
                 <div>
                   <label className="text-slate-300 block mb-1 text-xs">取件人手機號碼 (10碼，09開頭) <span className="text-rose-500">*必填</span></label>
-                  <input
-                    type="tel"
-                    required
-                    maxLength={10}
-                    placeholder="例：0912345678"
-                    value={shippingPhone}
-                    onChange={(e) => setShippingPhone(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 font-mono placeholder:text-slate-600 focus:outline-none focus:border-emerald-400 text-xs md:text-sm"
-                  />
+                  <input type="tel" required maxLength={10} placeholder="例：0912345678" value={shippingPhone} onChange={(e) => setShippingPhone(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 font-mono placeholder:text-slate-600 focus:outline-none focus:border-emerald-400 text-xs md:text-sm" />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-slate-300 text-xs">7-11 門市名稱與店號 <span className="text-rose-500">*必填</span></label>
-                    <button
-                      type="button"
-                      onClick={open711Map}
-                      className="text-xs text-amber-400 hover:text-amber-300 underline flex items-center gap-1 font-medium cursor-pointer"
-                    >
-                      🗺️ 開啟 7-11 地圖選門市
-                      <ExternalLink className="w-3.5 h-3.5" />
+                    <button type="button" onClick={open711Map} className="text-xs text-amber-400 hover:text-amber-300 underline flex items-center gap-1 font-medium cursor-pointer">
+                      🗺️ 開啟 7-11 地圖選門市 <ExternalLink className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <input
-                    type="text"
-                    required
-                    readOnly
-                    onClick={open711Map}
-                    placeholder="請點擊右上角按鈕選擇 7-11 門市"
-                    value={shippingStore}
-                    className="w-full bg-slate-950/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-emerald-300 font-medium placeholder:text-slate-500 focus:outline-none focus:border-emerald-400 text-xs md:text-sm cursor-pointer select-none"
-                  />
+                  <input type="text" required readOnly onClick={open711Map} placeholder="請點擊右上角按鈕選擇 7-11 門市" value={shippingStore} className="w-full bg-slate-950/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-emerald-300 font-medium placeholder:text-slate-500 focus:outline-none focus:border-emerald-400 text-xs md:text-sm cursor-pointer select-none" />
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={reportingPay}
-                className="w-full mt-3 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 transition cursor-pointer"
-              >
-                <Send className="w-4 h-4" />
-                {reportingPay ? '送出中...' : '送出後五碼與寄貨資料，通知賣家查帳'}
+              <button type="submit" disabled={reportingPay} className="w-full mt-3 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 transition cursor-pointer">
+                <Send className="w-4 h-4" /> {reportingPay ? '送出中...' : '送出後五碼與寄貨資料，通知賣家查帳'}
               </button>
             </form>
           </div>
@@ -1766,37 +1541,15 @@ function StoreContent() {
       {addedItemModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
-            <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto text-emerald-400">
-              <CheckCircle className="w-7 h-7" />
-            </div>
+            <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto text-emerald-400"><CheckCircle className="w-7 h-7" /></div>
             <div>
               <h3 className="text-lg font-bold text-slate-100">已加入購物車！</h3>
-              <p className="text-sm text-slate-300 mt-1">
-                {addedItemModal.name}
-                {addedItemModal.variant ? ` (${addedItemModal.variant})` : ''}
-              </p>
-              <p className="text-emerald-400 font-mono font-bold mt-1 text-base">
-                NT$ {addedItemModal.price.toLocaleString()}
-              </p>
+              <p className="text-sm text-slate-300 mt-1">{addedItemModal.name}{addedItemModal.variant ? ` (${addedItemModal.variant})` : ''}</p>
+              <p className="text-emerald-400 font-mono font-bold mt-1 text-base">NT$ {addedItemModal.price.toLocaleString()}</p>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setAddedItemModal(null)}
-                className="py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl text-xs md:text-sm transition cursor-pointer"
-              >
-                繼續搶其他款
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAddedItemModal(null)
-                  setIsCartOpen(true)
-                }}
-                className="py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs md:text-sm transition shadow-lg shadow-emerald-900/30 cursor-pointer"
-              >
-                查看購物車 ({totalCount})
-              </button>
+              <button type="button" onClick={() => setAddedItemModal(null)} className="py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl text-xs md:text-sm transition cursor-pointer">繼續搶其他款</button>
+              <button type="button" onClick={() => { setAddedItemModal(null); setIsCartOpen(true); }} className="py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs md:text-sm transition shadow-lg shadow-emerald-900/30 cursor-pointer">查看購物車 ({totalCount})</button>
             </div>
           </div>
         </div>
@@ -1806,13 +1559,8 @@ function StoreContent() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h2 className="text-base md:text-lg font-bold text-slate-100 flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-emerald-400" />
-                購物車 ({totalCount})
-              </h2>
-              <button onClick={() => setIsCartOpen(false)} className="text-slate-400 hover:text-slate-200 p-1 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
+              <h2 className="text-base md:text-lg font-bold text-slate-100 flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-emerald-400" /> 購物車 ({totalCount})</h2>
+              <button onClick={() => setIsCartOpen(false)} className="text-slate-400 hover:text-slate-200 p-1 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
 
             {cart.length === 0 ? (
@@ -1821,66 +1569,44 @@ function StoreContent() {
               <div className="space-y-4">
                 <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                   {cart.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex justify-between items-center text-xs md:text-sm bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800/60"
-                    >
+                    <div key={item.id} className="flex justify-between items-center text-xs md:text-sm bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800/60">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs bg-slate-800 text-emerald-400 px-2 py-0.5 rounded font-medium">
-                            {item.batch_name}
-                          </span>
+                          <span className="text-xs bg-slate-800 text-emerald-400 px-2 py-0.5 rounded font-medium">{item.batch_name}</span>
                           <p className="font-bold text-slate-100">{item.name}</p>
                         </div>
-                        {item.selectedVariant && (
-                          <span className="text-xs text-slate-400 block">
-                            規格：{item.selectedVariant}
-                          </span>
-                        )}
-                        <p className="text-xs text-slate-300 font-mono">
-                          NT$ {item.price.toLocaleString()}
-                        </p>
+                        {item.selectedVariant && <span className="text-xs text-slate-400 block">規格：{item.selectedVariant}</span>}
+                        <p className="text-xs text-slate-300 font-mono">NT$ {item.price.toLocaleString()}</p>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item.id, -1)}
-                          className="w-7 h-7 bg-slate-800 rounded-xl hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold cursor-pointer text-sm"
-                        >
-                          -
-                        </button>
-                        <span className="w-5 text-center font-mono text-slate-100 font-bold">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item.id, 1)}
-                          className="w-7 h-7 bg-slate-800 rounded-xl hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold cursor-pointer text-sm"
-                        >
-                          +
-                        </button>
+                        <button type="button" onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 bg-slate-800 rounded-xl hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold cursor-pointer text-sm">-</button>
+                        <span className="w-5 text-center font-mono text-slate-100 font-bold">{item.quantity}</span>
+                        <button type="button" onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 bg-slate-800 rounded-xl hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold cursor-pointer text-sm">+</button>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="pt-3 flex justify-between font-bold text-slate-100 text-base border-t border-slate-800">
-                  <span>預估總金額</span>
-                  <span className="text-emerald-400 font-mono text-lg font-black">
-                    NT$ {totalPrice.toLocaleString()}
-                  </span>
+                <div className="space-y-1.5 pt-3 border-t border-slate-800 text-xs text-slate-300">
+                  <div className="flex justify-between">
+                    <span>商品小計</span>
+                    <span className="font-mono">NT$ {itemsSubtotal.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>運費 <span className="text-[10px] text-slate-500">(滿 NT$ {thresholdSetting} 免運)</span></span>
+                    <span className="font-mono">{shippingFee === 0 ? <strong className="text-emerald-400">免運費</strong> : `NT$ ${shippingFee}`}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-between font-bold text-slate-100 text-base border-t border-slate-800">
+                  <span>預估總金額 (含運)</span>
+                  <span className="text-emerald-400 font-mono text-lg font-black">NT$ {totalPrice.toLocaleString()}</span>
                 </div>
 
                 <form onSubmit={handleSubmitOrder} className="space-y-3 pt-2 border-t border-slate-800">
                   {lineUser && (
                     <div className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-2xl flex items-center gap-3.5">
-                      {lineUser.pictureUrl ? (
-                        <img src={lineUser.pictureUrl} alt={lineUser.displayName} className="w-9 h-9 rounded-full object-cover border border-emerald-500/40" />
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
-                          {lineUser.displayName[0]}
-                        </div>
-                      )}
+                      {lineUser.pictureUrl ? <img src={lineUser.pictureUrl} alt={lineUser.displayName} className="w-9 h-9 rounded-full object-cover border border-emerald-500/40" /> : <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">{lineUser.displayName[0]}</div>}
                       <div className="text-xs md:text-sm">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-emerald-400">{lineUser.displayName}</span>
@@ -1892,19 +1618,8 @@ function StoreContent() {
                   )}
 
                   <div className="grid grid-cols-2 gap-3 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setIsCartOpen(false)}
-                      className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-sm transition cursor-pointer"
-                    >
-                      繼續選購
-                    </button>
-
-                    <button
-                      type="submit"
-                      disabled={submitting || !lineUser}
-                      className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-emerald-900/40 cursor-pointer"
-                    >
+                    <button type="button" onClick={() => setIsCartOpen(false)} className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-sm transition cursor-pointer">繼續選購</button>
+                    <button type="submit" disabled={submitting || !lineUser} className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-emerald-900/40 cursor-pointer">
                       {submitting ? '登記中...' : '⚡️ 登記搶單'}
                     </button>
                   </div>

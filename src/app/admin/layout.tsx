@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Zap, Package, Tag, ShoppingBag, LayoutDashboard, Layers } from 'lucide-react'
+import { Zap, Package, Tag, ShoppingBag, LayoutDashboard, Layers, DollarSign, Settings } from 'lucide-react'
 
 export default function AdminLayout({
   children,
@@ -18,11 +18,12 @@ export default function AdminLayout({
     { href: '/admin/products', label: '商品管理', icon: Tag },
     { href: '/admin/batches', label: '批次管理', icon: Layers },
     { href: '/admin/purchasing', label: '採購彙總', icon: ShoppingBag },
+    { href: '/admin/revenue', label: '營收與毛利戰情室', icon: DollarSign },
+    { href: '/admin/settings', label: '全站設定與運費', icon: Settings }, // 🟢 新增全站設定導覽
   ]
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
-      {/* 🟢 側邊導覽列 (固定在左側不動) */}
       <aside className="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 p-6 flex flex-col justify-between md:sticky md:top-0 md:h-screen">
         <div className="space-y-6">
           <div>
@@ -65,7 +66,6 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      {/* 主內容區 */}
       <main className="flex-1 p-6 md:p-10 overflow-y-auto">
         {children}
       </main>
