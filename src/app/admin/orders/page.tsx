@@ -172,7 +172,6 @@ export default function AdminOrdersPage() {
 
     let parsedCouponCode = ''
     let parsedDiscount = 0
-    // 🟢 關鍵修正：只有當訂單已經不是 unpaid (也就是進入待入帳、已付款等已送出資料階段) 且備註有包含折抵時，才解析優惠券
     if (ord.pay_status !== 'unpaid' && ord.note && ord.note.includes('折抵:')) {
       try {
         const matchCode = ord.note.match(/優惠券:\s*([^,]+)/)
@@ -299,25 +298,30 @@ export default function AdminOrdersPage() {
   }
 
   const copyPaymentNotice = (g: typeof groupList[0]) => {
-    let text = `【一条魚代購・${g.batch_name} 採買完成與匯款通知】\n`
-    text += `買家暱稱：${g.line_name}\n`
-    text += `連線專案：${g.batch_name}\n`
-    text += `------------------------\n`
+    let itemsText = ''
     g.items.forEach((it, idx) => {
       const isFailed = it.status === 'failed'
-      text += `${idx + 1}. ${it.name} ${it.selectedVariant ? `(${it.selectedVariant})` : ''} × ${it.quantity} = ${isFailed ? '【✕ 缺貨未買到】' : `NT$ ${(it.price * it.quantity).toLocaleString()}`}\n`
+      itemsText += `${idx + 1}. ${it.name} ${it.selectedVariant ? `(${it.selectedVariant})` : ''} × ${it.quantity} = ${isFailed ? '【✕ 缺貨未買到】' : `NT$ ${(it.price * it.quantity).toLocaleString()}`}\n`
     })
-    text += `------------------------\n`
-    text += `商品小計：NT$ ${g.items_subtotal.toLocaleString()}\n`
-    text += `運費：${g.shipping_fee === 0 ? '免運費' : `NT$ ${g.shipping_fee}`}\n`
-    if (g.discount_amount > 0) {
-      text += `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discount_amount}\n`
-    }
-    text += `應匯總額：NT$ ${g.total_amount.toLocaleString()}\n\n`
-    text += `🏦 匯款轉帳資訊：\n銀行：822 中國信託\n帳號：1234-5678-9012\n戶名：林星妤\n\n`
-    text += `匯款完成後，請點開前台「會員中心」填寫您的「帳號後五碼」與「7-11 寄件門市」，謝謝您！`
 
-    navigator.clipboard.writeText(text)
+    const textToCopy = `【一条魚代購・採買完成與匯款通知】
+買家暱稱：${g.line_name}
+連線專案：${g.batch_name}
+------------------------
+${itemsText.trim()}
+------------------------
+商品小計：NT$ ${g.items_subtotal.toLocaleString()}
+運費：${g.shipping_fee === 0 ? '免運費' : `NT$ ${g.shipping_fee}`}
+${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discount_amount}\n` : ''}應匯總額：NT$ ${g.total_amount.toLocaleString()}
+
+🏦 匯款轉帳資訊：
+銀行：004（臺灣銀行）
+帳號：0270-0869-3821
+戶名：林O妤
+
+匯款完成後，請點開前台「查看我的訂單」填寫您的「帳號後五碼」與「7-11 寄件門市」，謝謝您！`
+
+    navigator.clipboard.writeText(textToCopy)
     setCopySuccessId(g.key)
     setTimeout(() => setCopySuccessId(null), 2000)
   }
@@ -328,17 +332,57 @@ export default function AdminOrdersPage() {
 
     const itemsHtml = g.items
       .filter(i => i.status !== 'failed')
-      .map(i => `<li>${i.name} ${i.selectedVariant ? `(${i.selectedVariant})` : ''} × ${i.quantity}</li>`)
+      .map(i => `<li>${i.name} ${i.selectedVariant ? `(${i.selectedVariant})` : ''} × ${i.quantity} ＝ NT$ ${(i.price * i.quantity).toLocaleString()}</li>`)
       .join('')
 
     printWindow.document.write(`
       <html>
-        <head><title>出貨核對單 - ${g.buyer_name || g.line_name}</title></head>
-        <body style="font-family:sans-serif; padding:24px;">
-          <h2>一条魚代購・出貨核對單</h2>
-          <p><strong>門市：</strong>${g.store_name || '未提供'}</p>
-          <p><strong>收件人：</strong>${g.buyer_name || g.line_name} (${g.buyer_phone || '未提供'})</p>
-          <ul>${itemsHtml}</ul>
+        <head>
+          <title>一条魚代購｜出貨單 - ${g.buyer_name || g.line_name}</title>
+          <style>
+            @page { size: A4 portrait; margin: 15mm; }
+            body { font-family: sans-serif; padding: 0; color: #111; line-height: 1.6; font-size: 14px; }
+            h2 { text-align: center; margin-bottom: 4px; font-size: 22px; font-weight: 900; }
+            .subtitle { text-align: center; font-size: 13px; color: #555; margin-bottom: 24px; }
+            .section { margin-bottom: 18px; border-bottom: 1px dashed #ccc; padding-bottom: 14px; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+            ul { padding-left: 20px; margin: 8px 0; }
+            li { margin-bottom: 6px; }
+            .total-box { font-size: 17px; font-weight: bold; text-align: right; margin-top: 12px; }
+            .notes { font-size: 12px; color: #441; background: #fffdf0; border: 1px solid #e2d96d; padding: 12px; border-radius: 6px; margin-top: 24px; }
+            .notes ol { padding-left: 16px; margin: 4px 0; }
+          </style>
+        </head>
+        <body>
+          <h2>🛍️ 一条魚代購｜出貨單</h2>
+          <div class="subtitle">專案：${g.batch_name}</div>
+
+          <div class="section">
+            <p><strong>收件人：</strong>${g.buyer_name || g.line_name} (${g.buyer_phone || '未提供'})</p>
+            <p><strong>寄件門市：</strong>${g.store_name || '未提供'}</p>
+          </div>
+
+          <div class="section">
+            <p><strong>📦 商品明細：</strong></p>
+            <ul>${itemsHtml}</ul>
+          </div>
+
+          <div class="section">
+            <div class="row"><span>商品小計：</span><span>NT$ ${g.items_subtotal.toLocaleString()}</span></div>
+            <div class="row"><span>運費：</span><span>${g.shipping_fee === 0 ? '免運費' : `NT$ ${g.shipping_fee}`}</span></div>
+            ${g.discount_amount > 0 ? `<div class="row" style="color: #d9534f;"><span>優惠券折抵 (${g.coupon_code})：</span><span>-NT$ ${g.discount_amount}</span></div>` : ''}
+            <div class="total-box">應收總額：NT$ ${g.total_amount.toLocaleString()}</div>
+          </div>
+
+          <div class="notes">
+            <strong>💡 溫馨提醒與注意事項：</strong>
+            <ol>
+              <li>收到包裹後請務必開箱錄影，以保障雙方權益。</li>
+              <li>若商品有任何問題，請透過 LINE 官方客服與我們聯繫，我們會盡快為您處理。</li>
+              <li>感謝您的支持與信任，期待下次再為您服務！</li>
+            </ol>
+          </div>
+
           <script>window.onload = function() { window.print(); }</script>
         </body>
       </html>
@@ -506,9 +550,6 @@ export default function AdminOrdersPage() {
                         <button onClick={() => handleRevertToActive(g.order_ids)} className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border border-slate-700">
                           <RotateCcw className="w-4 h-4 text-amber-400" /> 退回進行中
                         </button>
-                        <button onClick={() => copyPaymentNotice(g)} className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-2 cursor-pointer">
-                          <Copy className="w-4 h-4" /> 複製匯款通知
-                        </button>
                         <button onClick={() => handleConfirmPaid(g.order_ids)} className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-2 shadow-md cursor-pointer animate-pulse">
                           <CheckCircle className="w-4 h-4" /> 確認入帳
                         </button>
@@ -554,7 +595,6 @@ export default function AdminOrdersPage() {
                       </div>
                     )}
 
-                    {/* 🟢 嚴格檢查：只有當訂單非 unpaid 時，才在後台顯示折扣 */}
                     <div className="text-right pl-3 border-l border-slate-800 space-y-0.5 font-mono">
                       <div className="text-[11px] text-slate-400">
                         小計 NT$ {g.items_subtotal.toLocaleString()} + 運費 <span className="text-amber-400">{g.shipping_fee === 0 ? '免運' : `NT$ ${g.shipping_fee}`}</span>

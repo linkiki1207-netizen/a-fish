@@ -1487,9 +1487,9 @@ function StoreContent() {
               </div>
               {payModalBatch.couponCode && <div className="text-xs text-rose-400">* 已使用優惠券「{payModalBatch.couponCode}」折抵 NT$ {payModalBatch.discountAmount}（送出後將自動自錢包移除）</div>}
               <div className="pt-2 border-t border-slate-800/80 text-xs text-slate-300 space-y-1.5">
-                <p>🏦 銀行代碼：<span className="text-white font-mono font-bold">822 (中國信託)</span></p>
-                <p>💳 匯款帳號：<span className="text-white font-mono font-bold">1234-5678-9012</span></p>
-                <p>👤 戶名：<span className="text-white font-bold">林星妤</span></p>
+                <p>🏦 銀行代碼：<span className="text-white font-mono font-bold">004 (臺灣銀行)</span></p>
+                <p>💳 匯款帳號：<span className="text-white font-mono font-bold">0270-0869-3821</span></p>
+                <p>👤 戶名：<span className="text-white font-bold">林O妤</span></p>
               </div>
             </div>
 
