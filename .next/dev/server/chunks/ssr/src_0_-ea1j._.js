@@ -313,11 +313,34 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
     `);
         printWindow.document.close();
     };
+    // 🟢 確認入帳並發送 LINE 通知
     const handleConfirmPaid = async (orderIds)=>{
         const { error } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$supabase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["supabase"].from('orders').update({
             pay_status: 'paid'
         }).in('id', orderIds);
-        if (!error) fetchData();
+        if (!error) {
+            // 尋找對應的訂單群組以發送通知
+            const targetGroup = groupList.find((g)=>g.order_ids.some((id)=>orderIds.includes(id)));
+            if (targetGroup) {
+                try {
+                    await fetch('/api/line/notify', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            type: 'payment_confirmed',
+                            lineName: targetGroup.line_name,
+                            batchName: targetGroup.batch_name,
+                            amount: targetGroup.total_amount
+                        })
+                    });
+                } catch (err) {
+                    console.error('入帳 LINE 通知發送失敗:', err);
+                }
+            }
+            fetchData();
+        }
     };
     const handleRevertPayment = async (orderIds)=>{
         if (!confirm('確定移回待入帳？')) return;
@@ -326,12 +349,34 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
         }).in('id', orderIds);
         if (!error) fetchData();
     };
+    // 🟢 標記已出貨並發送 LINE 通知
     const handleMarkAsShipped = async (orderIds)=>{
         const { error } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$supabase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["supabase"].from('orders').update({
             status: 'shipped',
             pay_status: 'paid'
         }).in('id', orderIds);
-        if (!error) fetchData();
+        if (!error) {
+            const targetGroup = groupList.find((g)=>g.order_ids.some((id)=>orderIds.includes(id)));
+            if (targetGroup) {
+                try {
+                    await fetch('/api/line/notify', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            type: 'order_shipped',
+                            lineName: targetGroup.line_name,
+                            batchName: targetGroup.batch_name,
+                            storeName: targetGroup.store_name
+                        })
+                    });
+                } catch (err) {
+                    console.error('出貨 LINE 通知發送失敗:', err);
+                }
+            }
+            fetchData();
+        }
     };
     const handleMarkAsCompleted = async (orderIds)=>{
         const { error } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$supabase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["supabase"].from('orders').update({
@@ -369,14 +414,14 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                         className: "w-6 h-6 text-emerald-400"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 431,
+                                        lineNumber: 472,
                                         columnNumber: 13
                                     }, this),
                                     "買家整單與結帳中樞 (7-11 交貨便)"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 430,
+                                lineNumber: 471,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -390,13 +435,13 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 434,
+                                lineNumber: 475,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 429,
+                        lineNumber: 470,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -412,7 +457,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                 children: orderTab === 'completed' ? '已完成訂單總額' : '分頁應收總額'
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 442,
+                                                lineNumber: 483,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -423,13 +468,13 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 443,
+                                                lineNumber: 484,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 441,
+                                        lineNumber: 482,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -442,14 +487,14 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                         className: "w-3.5 h-3.5"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 447,
+                                                        lineNumber: 488,
                                                         columnNumber: 17
                                                     }, this),
                                                     " 實估淨賺 (毛利)"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 446,
+                                                lineNumber: 487,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -460,19 +505,19 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 449,
+                                                lineNumber: 490,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 445,
+                                        lineNumber: 486,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 440,
+                                lineNumber: 481,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -483,26 +528,26 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                         className: `w-4 h-4 ${loading ? 'animate-spin' : ''}`
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 454,
+                                        lineNumber: 495,
                                         columnNumber: 13
                                     }, this),
                                     " 重新整理"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 453,
+                                lineNumber: 494,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 439,
+                        lineNumber: 480,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 428,
+                lineNumber: 469,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -519,7 +564,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                 className: "w-3.5 h-3.5"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 461,
+                                lineNumber: 502,
                                 columnNumber: 11
                             }, this),
                             " 進行中 (",
@@ -528,7 +573,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 460,
+                        lineNumber: 501,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -542,7 +587,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                 className: "w-3.5 h-3.5"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 464,
+                                lineNumber: 505,
                                 columnNumber: 11
                             }, this),
                             " 待入帳 (",
@@ -551,7 +596,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 463,
+                        lineNumber: 504,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -565,7 +610,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                 className: "w-3.5 h-3.5"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 467,
+                                lineNumber: 508,
                                 columnNumber: 11
                             }, this),
                             " 準備出貨 (",
@@ -574,7 +619,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 466,
+                        lineNumber: 507,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -588,7 +633,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                 className: "w-3.5 h-3.5"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 470,
+                                lineNumber: 511,
                                 columnNumber: 11
                             }, this),
                             " 已出貨 (",
@@ -597,7 +642,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 469,
+                        lineNumber: 510,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -611,7 +656,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                 className: "w-3.5 h-3.5"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 473,
+                                lineNumber: 514,
                                 columnNumber: 11
                             }, this),
                             " 已完成訂單 (",
@@ -620,13 +665,13 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 472,
+                        lineNumber: 513,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 459,
+                lineNumber: 500,
                 columnNumber: 7
             }, this),
             availableBatches.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -642,7 +687,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 479,
+                        lineNumber: 520,
                         columnNumber: 11
                     }, this),
                     availableBatches.map((b)=>{
@@ -658,14 +703,14 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                             ]
                         }, b.id, true, {
                             fileName: "[project]/src/app/admin/orders/page.tsx",
-                            lineNumber: 485,
+                            lineNumber: 526,
                             columnNumber: 15
                         }, this);
                     })
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 478,
+                lineNumber: 519,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -675,7 +720,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                         className: "w-5 h-5 text-slate-400 absolute left-4 top-4"
                     }, void 0, false, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 494,
+                        lineNumber: 535,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -686,13 +731,13 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                         className: "w-full bg-slate-900 border border-slate-800 rounded-2xl pl-12 pr-4 py-3.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-400"
                     }, void 0, false, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 495,
+                        lineNumber: 536,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 493,
+                lineNumber: 534,
                 columnNumber: 7
             }, this),
             loading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -700,14 +745,14 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                 children: "載入整單資料中..."
             }, void 0, false, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 505,
+                lineNumber: 546,
                 columnNumber: 9
             }, this) : filteredList.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl p-16 text-center text-slate-400 text-sm",
                 children: "目前此分頁沒有任何訂單"
             }, void 0, false, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 507,
+                lineNumber: 548,
                 columnNumber: 9
             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "space-y-5",
@@ -731,12 +776,12 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                     className: "w-6 h-6 fill-[#06C755]"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                    lineNumber: 521,
+                                                    lineNumber: 562,
                                                     columnNumber: 23
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 520,
+                                                lineNumber: 561,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -750,7 +795,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 children: g.line_name
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 525,
+                                                                lineNumber: 566,
                                                                 columnNumber: 25
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -758,7 +803,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 children: getBatchBadgeWithFlag(g.batch_name)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 526,
+                                                                lineNumber: 567,
                                                                 columnNumber: 25
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -771,7 +816,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 527,
+                                                                lineNumber: 568,
                                                                 columnNumber: 25
                                                             }, this),
                                                             isCompleted ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -779,7 +824,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 children: "✓ 已完成訂單"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 528,
+                                                                lineNumber: 569,
                                                                 columnNumber: 40
                                                             }, this) : isShipped ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 className: "text-xs bg-purple-500/20 text-purple-300 px-2.5 py-1 rounded-md font-bold flex items-center gap-1",
@@ -788,14 +833,14 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                         className: "w-3.5 h-3.5"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                        lineNumber: 528,
+                                                                        lineNumber: 569,
                                                                         columnNumber: 272
                                                                     }, this),
                                                                     " 已寄出交貨便"
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 528,
+                                                                lineNumber: 569,
                                                                 columnNumber: 156
                                                             }, this) : isPaid ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 className: "text-xs bg-blue-500/20 text-blue-300 px-2.5 py-1 rounded-md font-bold flex items-center gap-1",
@@ -804,14 +849,14 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                         className: "w-3.5 h-3.5"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                        lineNumber: 528,
+                                                                        lineNumber: 569,
                                                                         columnNumber: 445
                                                                     }, this),
                                                                     " 已入帳・準備出貨"
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 528,
+                                                                lineNumber: 569,
                                                                 columnNumber: 333
                                                             }, this) : isReported ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 className: "text-xs bg-amber-500/20 text-amber-300 px-2.5 py-1 rounded-md font-bold animate-pulse flex items-center gap-1",
@@ -820,27 +865,27 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                         className: "w-3.5 h-3.5"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                        lineNumber: 528,
+                                                                        lineNumber: 569,
                                                                         columnNumber: 638
                                                                     }, this),
                                                                     " 已回報匯款與門市"
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 528,
+                                                                lineNumber: 569,
                                                                 columnNumber: 510
                                                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 className: "text-xs bg-slate-950 text-slate-300 px-2.5 py-1 rounded-md",
                                                                 children: "待處理 (未填資料)"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 528,
+                                                                lineNumber: 569,
                                                                 columnNumber: 690
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 524,
+                                                        lineNumber: 565,
                                                         columnNumber: 23
                                                     }, this),
                                                     g.store_name && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -853,7 +898,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                         className: "w-4 h-4"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                        lineNumber: 533,
+                                                                        lineNumber: 574,
                                                                         columnNumber: 96
                                                                     }, this),
                                                                     " ",
@@ -861,7 +906,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 533,
+                                                                lineNumber: 574,
                                                                 columnNumber: 27
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -871,7 +916,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                         className: "w-4 h-4 text-slate-400"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                        lineNumber: 534,
+                                                                        lineNumber: 575,
                                                                         columnNumber: 94
                                                                     }, this),
                                                                     " ",
@@ -879,7 +924,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 534,
+                                                                lineNumber: 575,
                                                                 columnNumber: 27
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -889,7 +934,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                         className: "w-4 h-4"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                        lineNumber: 535,
+                                                                        lineNumber: 576,
                                                                         columnNumber: 96
                                                                     }, this),
                                                                     " ",
@@ -897,25 +942,25 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 535,
+                                                                lineNumber: 576,
                                                                 columnNumber: 27
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 532,
+                                                        lineNumber: 573,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 523,
+                                                lineNumber: 564,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 519,
+                                        lineNumber: 560,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -929,7 +974,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                         className: "w-4 h-4"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 544,
+                                                        lineNumber: 585,
                                                         columnNumber: 25
                                                     }, this),
                                                     " ",
@@ -937,7 +982,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 543,
+                                                lineNumber: 584,
                                                 columnNumber: 23
                                             }, this),
                                             orderTab === 'reported' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -950,14 +995,14 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 className: "w-4 h-4 text-amber-400"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 551,
+                                                                lineNumber: 592,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " 退回進行中"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 550,
+                                                        lineNumber: 591,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -968,20 +1013,20 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 className: "w-4 h-4"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 554,
+                                                                lineNumber: 595,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " 確認入帳"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 553,
+                                                        lineNumber: 594,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 549,
+                                                lineNumber: 590,
                                                 columnNumber: 23
                                             }, this),
                                             orderTab === 'shipping' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -994,14 +1039,14 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 className: "w-4 h-4 text-amber-400"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 562,
+                                                                lineNumber: 603,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " 移回待入帳"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 561,
+                                                        lineNumber: 602,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1012,14 +1057,14 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 className: "w-4 h-4 text-emerald-400"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 565,
+                                                                lineNumber: 606,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " 列印核對單"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 564,
+                                                        lineNumber: 605,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1030,7 +1075,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 className: "w-4 h-4"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 568,
+                                                                lineNumber: 609,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " ",
@@ -1038,7 +1083,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 567,
+                                                        lineNumber: 608,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1047,13 +1092,13 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                         children: "標記已出貨"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 570,
+                                                        lineNumber: 611,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 560,
+                                                lineNumber: 601,
                                                 columnNumber: 23
                                             }, this),
                                             orderTab === 'shipped' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -1066,14 +1111,14 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 className: "w-4 h-4 text-amber-400"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 579,
+                                                                lineNumber: 620,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " 移回準備出貨"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 578,
+                                                        lineNumber: 619,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1082,13 +1127,13 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                         children: "移至已完成訂單"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 581,
+                                                        lineNumber: 622,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 577,
+                                                lineNumber: 618,
                                                 columnNumber: 23
                                             }, this),
                                             orderTab === 'completed' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1102,14 +1147,14 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 className: "w-4 h-4 text-amber-400"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 590,
+                                                                lineNumber: 631,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " 移回已出貨"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 589,
+                                                        lineNumber: 630,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1120,20 +1165,20 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 className: "w-4 h-4"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 593,
+                                                                lineNumber: 634,
                                                                 columnNumber: 27
                                                             }, this),
                                                             " 封存訂單"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 592,
+                                                        lineNumber: 633,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 588,
+                                                lineNumber: 629,
                                                 columnNumber: 23
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1150,7 +1195,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 children: g.shipping_fee === 0 ? '免運' : `NT$ ${g.shipping_fee}`
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 600,
+                                                                lineNumber: 641,
                                                                 columnNumber: 73
                                                             }, this),
                                                             g.pay_status !== 'unpaid' && g.discount_amount > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1161,13 +1206,13 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 601,
+                                                                lineNumber: 642,
                                                                 columnNumber: 80
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 599,
+                                                        lineNumber: 640,
                                                         columnNumber: 23
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1177,7 +1222,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 children: "應收："
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 604,
+                                                                lineNumber: 645,
                                                                 columnNumber: 25
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1188,13 +1233,13 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 605,
+                                                                lineNumber: 646,
                                                                 columnNumber: 25
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 603,
+                                                        lineNumber: 644,
                                                         columnNumber: 23
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1204,7 +1249,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 children: "淨賺："
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 608,
+                                                                lineNumber: 649,
                                                                 columnNumber: 25
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1215,31 +1260,31 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 609,
+                                                                lineNumber: 650,
                                                                 columnNumber: 25
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 607,
+                                                        lineNumber: 648,
                                                         columnNumber: 23
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 598,
+                                                lineNumber: 639,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 541,
+                                        lineNumber: 582,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 518,
+                                lineNumber: 559,
                                 columnNumber: 17
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1250,7 +1295,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                         children: "📦 本線商品明細："
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 616,
+                                        lineNumber: 657,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1272,7 +1317,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 children: it.name
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 628,
+                                                                lineNumber: 669,
                                                                 columnNumber: 29
                                                             }, this),
                                                             it.selectedVariant && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1283,7 +1328,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 629,
+                                                                lineNumber: 670,
                                                                 columnNumber: 52
                                                             }, this),
                                                             isBought && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1291,7 +1336,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 children: "✓ 已買到"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 630,
+                                                                lineNumber: 671,
                                                                 columnNumber: 42
                                                             }, this),
                                                             isFailed && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1299,13 +1344,13 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 children: "✕ 缺貨"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 631,
+                                                                lineNumber: 672,
                                                                 columnNumber: 42
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 627,
+                                                        lineNumber: 668,
                                                         columnNumber: 27
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1322,7 +1367,7 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 634,
+                                                                lineNumber: 675,
                                                                 columnNumber: 29
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1333,49 +1378,49 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                                lineNumber: 635,
+                                                                lineNumber: 676,
                                                                 columnNumber: 29
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                        lineNumber: 633,
+                                                        lineNumber: 674,
                                                         columnNumber: 27
                                                     }, this)
                                                 ]
                                             }, idx, true, {
                                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                                lineNumber: 626,
+                                                lineNumber: 667,
                                                 columnNumber: 25
                                             }, this);
                                         })
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                                        lineNumber: 617,
+                                        lineNumber: 658,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                                lineNumber: 615,
+                                lineNumber: 656,
                                 columnNumber: 17
                             }, this)
                         ]
                     }, g.key, true, {
                         fileName: "[project]/src/app/admin/orders/page.tsx",
-                        lineNumber: 517,
+                        lineNumber: 558,
                         columnNumber: 15
                     }, this);
                 })
             }, void 0, false, {
                 fileName: "[project]/src/app/admin/orders/page.tsx",
-                lineNumber: 509,
+                lineNumber: 550,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/admin/orders/page.tsx",
-        lineNumber: 427,
+        lineNumber: 468,
         columnNumber: 5
     }, this);
 }

@@ -64,7 +64,7 @@ function StoreContent() {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  
+   
   const [announcement, setAnnouncement] = useState('')
   const [shippingFeeSetting, setShippingFeeSetting] = useState(60)
   const [thresholdSetting, setThresholdSetting] = useState(2000)
@@ -74,7 +74,7 @@ function StoreContent() {
   const [myClaimedCoupons, setMyClaimedCoupons] = useState<any[]>([])
   const [allUserClaimedIds, setAllUserClaimedIds] = useState<string[]>([])
   const [appliedCoupons, setAppliedCoupons] = useState<Record<string, { id: string; code: string; discount: number }>>({})
-  
+   
   const [activeDetailProduct, setActiveDetailProduct] = useState<Product | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
@@ -96,11 +96,11 @@ function StoreContent() {
 
   const [lineUser, setLineUser] = useState<LineUser | null>(null)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
-  
+   
   const [memberModalOpen, setMemberModalOpen] = useState(false)
   const [memberTab, setMemberTab] = useState<'profile' | 'coupons' | 'contact'>('profile')
   const [couponSubTab, setCouponSubTab] = useState<'claim' | 'wallet'>('claim')
-  
+   
   const [ordersModalOpen, setOrdersModalOpen] = useState(false)
   const [buyerOrderTab, setBuyerOrderTab] = useState<'active' | 'shipping' | 'shipped' | 'completed'>('active')
   const [myOrders, setMyOrders] = useState<any[]>([])
@@ -118,7 +118,7 @@ function StoreContent() {
     couponCode?: string
     discountAmount?: number
   } | null>(null)
-  
+   
   const [bankLast5, setBankLast5] = useState('')
   const [shippingName, setShippingName] = useState('')
   const [shippingPhone, setShippingPhone] = useState('')
@@ -675,6 +675,24 @@ function StoreContent() {
 
       if (error) throw error
 
+      // 🟢 自動觸發 LINE 通知 API
+      try {
+        await fetch('/api/line/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'payment_reported',
+            lineName: lineUser.displayName,
+            batchName: payModalBatch.batch_name,
+            amount: payModalBatch.amount,
+            bankLast5: bankLast5.trim(),
+            storeName: shippingStore.trim()
+          })
+        })
+      } catch (notifyErr) {
+        console.error('LINE 通知發送失敗:', notifyErr)
+      }
+
       if (payModalBatch.couponId) {
         await supabase
           .from('user_coupons')
@@ -884,7 +902,7 @@ function StoreContent() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
-        
+         
         {announcement && (
           <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-3 flex items-center gap-3 text-amber-300 text-xs md:text-sm font-bold shadow-md">
             <Megaphone className="w-4 h-4 text-amber-400 flex-shrink-0 animate-bounce" />
@@ -908,7 +926,7 @@ function StoreContent() {
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">{lineUser.displayName[0]}</div>
                 )}
-                
+                 
                 <button onClick={openMemberCenter} className="text-left group cursor-pointer">
                   <span className="text-sm font-bold text-slate-200 block max-w-[110px] truncate group-hover:text-emerald-400 transition">{lineUser.displayName}</span>
                   <span className="text-xs text-emerald-400">會員中心 ›</span>
@@ -1200,7 +1218,7 @@ function StoreContent() {
       {memberModalOpen && lineUser && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
-            
+             
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-3.5">
                 {lineUser.pictureUrl ? (
@@ -1328,7 +1346,6 @@ function StoreContent() {
                   <h3 className="text-base font-bold text-white">需要協助或修改訂單嗎？</h3>
                   <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">若您有任何商品問題、需要更改 7-11 門市或查詢匯款進度，歡迎隨時透過 LINE 官方客服與我們聯繫！</p>
                 </div>
-                {/* 🟢 使用 line://ti/p/@146vimco 或 https://line.me/R/ti/p/@146vimco 以直接啟動 App 加好友 */}
                 <a href="https://line.me/R/ti/p/@146vimco" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 w-full py-3.5 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold rounded-2xl text-sm transition shadow-lg shadow-emerald-950/40 cursor-pointer">
                   <MessageSquare className="w-4 h-4 fill-white" /> 點擊加入 LINE 官方客服
                 </a>
@@ -1343,7 +1360,7 @@ function StoreContent() {
       {ordersModalOpen && lineUser && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
-            
+             
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-3">
                 <Package className="w-6 h-6 text-emerald-400" />

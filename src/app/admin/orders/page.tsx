@@ -390,9 +390,30 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
     printWindow.document.close()
   }
 
+  // 🟢 確認入帳並發送 LINE 通知
   const handleConfirmPaid = async (orderIds: string[]) => {
     const { error } = await supabase.from('orders').update({ pay_status: 'paid' }).in('id', orderIds)
-    if (!error) fetchData()
+    if (!error) {
+      // 尋找對應的訂單群組以發送通知
+      const targetGroup = groupList.find(g => g.order_ids.some(id => orderIds.includes(id)))
+      if (targetGroup) {
+        try {
+          await fetch('/api/line/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'payment_confirmed',
+              lineName: targetGroup.line_name,
+              batchName: targetGroup.batch_name,
+              amount: targetGroup.total_amount
+            })
+          })
+        } catch (err) {
+          console.error('入帳 LINE 通知發送失敗:', err)
+        }
+      }
+      fetchData()
+    }
   }
 
   const handleRevertPayment = async (orderIds: string[]) => {
@@ -401,9 +422,29 @@ ${g.discount_amount > 0 ? `優惠券 (${g.coupon_code}) 折抵：-NT$ ${g.discou
     if (!error) fetchData()
   }
 
+  // 🟢 標記已出貨並發送 LINE 通知
   const handleMarkAsShipped = async (orderIds: string[]) => {
     const { error } = await supabase.from('orders').update({ status: 'shipped', pay_status: 'paid' }).in('id', orderIds)
-    if (!error) fetchData()
+    if (!error) {
+      const targetGroup = groupList.find(g => g.order_ids.some(id => orderIds.includes(id)))
+      if (targetGroup) {
+        try {
+          await fetch('/api/line/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'order_shipped',
+              lineName: targetGroup.line_name,
+              batchName: targetGroup.batch_name,
+              storeName: targetGroup.store_name
+            })
+          })
+        } catch (err) {
+          console.error('出貨 LINE 通知發送失敗:', err)
+        }
+      }
+      fetchData()
+    }
   }
 
   const handleMarkAsCompleted = async (orderIds: string[]) => {
