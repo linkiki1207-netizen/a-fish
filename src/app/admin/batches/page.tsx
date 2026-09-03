@@ -16,6 +16,7 @@ interface ProductItem {
   id: string
   name: string
   price: number
+  cost?: number
   stock?: number
   image_url?: string | null
   category?: string
@@ -178,7 +179,6 @@ export default function AdminBatchesPage() {
 
       if (error) throw error
 
-      // 🟢 修正：重新啟用時只將 is_active 設為 true，不強制改變 category，保留原本的分類（限時下單或各國連線）
       await supabase
         .from('products')
         .update({ is_active: true })
@@ -569,8 +569,10 @@ export default function AdminBatchesPage() {
                           )}
                           <div className="space-y-1">
                             <div className="text-sm font-bold text-white">{p.name}</div>
-                            <div className="flex items-center gap-2 text-xs">
+                            <div className="flex items-center gap-2 text-xs flex-wrap">
+                              {/* 🟢 售價與成本同步顯示 */}
                               <span className="text-emerald-400 font-mono font-bold">NT$ {p.price}</span>
+                              <span className="text-slate-400 font-mono text-[11px]">/ 成本 NT$ {p.cost ?? 0}</span>
                               <span className="text-slate-400">｜</span>
                               <span className="text-slate-300">訂購人數：<strong className="text-white">{stats.buyerCount} 人</strong></span>
                               <span className="text-slate-400">｜</span>

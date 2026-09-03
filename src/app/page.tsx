@@ -555,7 +555,12 @@ function StoreContent() {
           const newShipping = (isFreeShippingAllSetting || newSubtotal >= thresholdSetting) ? 0 : shippingFeeSetting
           const newTotalAmount = newSubtotal + newShipping
 
-          await supabase.from('orders').update({ items: existingItems, total_amount: newTotalAmount, total_price: newTotalAmount }).eq('id', targetOrder.id)
+          await supabase.from('orders').update({ 
+            items: existingItems, 
+            total_amount: newTotalAmount, 
+            total_price: newTotalAmount,
+            line_id: lineUser.userId // 🟢 確保更新時也帶上 line_id
+          }).eq('id', targetOrder.id)
         } else {
           const batchSubtotal = batchItems.reduce((s, it) => s + it.price * it.quantity, 0)
           const batchShipping = (isFreeShippingAllSetting || batchSubtotal >= thresholdSetting) ? 0 : shippingFeeSetting
@@ -579,6 +584,7 @@ function StoreContent() {
             order_no: orderNo,
             batch_id: bId !== 'DEFAULT' ? bId : null,
             line_name: currentLineName,
+            line_id: lineUser.userId, // 🟢 關鍵：把 LINE ID 存入資料庫
             buyer_name: currentLineName,
             customer_name: currentLineName,
             note: `${batchName}`,
@@ -1058,62 +1064,62 @@ function StoreContent() {
                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold gap-1">
                           <Info className="w-4 h-4 text-emerald-400" /> 點擊查看商品說明
                         </div>
-                      </div>
-                    ) : (
-                      <div className="w-full h-40 bg-slate-800/60 rounded-xl mb-3.5 flex items-center justify-center text-slate-400 text-sm font-medium">
-                        {isLive ? '🔴 限時下單熱賣中' : '📦 專櫃選品'}
-                      </div>
-                    )}
-                    <h3 className="font-bold text-slate-100 text-lg pr-16 leading-snug group-hover:text-emerald-400 transition">{product.name}</h3>
-                    {product.description && <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{product.description}</p>}
-                  </div>
-
-                  <div>
-                    {variants.length > 0 && (
-                      <div className="mt-3.5">
-                        <span className="text-xs text-slate-300 block mb-2 font-medium">選擇規格：</span>
-                        <div className="flex flex-wrap gap-2">
-                          {variants.map((v) => {
-                            const isSelected = currentSelected === v
-                            return (
-                              <button
-                                key={v}
-                                type="button"
-                                onClick={() => setSelectedVariants((prev) => ({ ...prev, [product.id]: v }))}
-                                className={`px-3 py-1.5 rounded-xl text-xs md:text-sm font-medium border transition cursor-pointer ${
-                                  isSelected
-                                    ? isLive ? 'bg-rose-500/10 border-rose-500 text-rose-400 font-bold' : isSpot ? 'bg-blue-500/10 border-blue-500 text-blue-400 font-bold' : 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
-                                    : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:text-white'
-                                }`}
-                              >
-                                {isSelected ? '✓ ' : ''}{v}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-3.5 border-t border-slate-800/80 flex items-center justify-between">
-                    <div>
-                      <div className="text-xs text-slate-400 font-medium">代購價</div>
-                      <div className="text-emerald-400 font-black text-xl font-mono">NT$ {product.price?.toLocaleString()}</div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => addToCart(product)}
-                      className={`px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold text-white shadow-md transition-all cursor-pointer ${
-                        isLive ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/30' : isSpot ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/30' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30'
-                      }`}
-                    >
-                      + 加入購物車
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="w-full h-40 bg-slate-800/60 rounded-xl mb-3.5 flex items-center justify-center text-slate-400 text-sm font-medium">
+                      {isLive ? '🔴 限時下單熱賣中' : '📦 專櫃選品'}
+                    </div>
+                  )}
+                  <h3 className="font-bold text-slate-100 text-lg pr-16 leading-snug group-hover:text-emerald-400 transition">{product.name}</h3>
+                  {product.description && <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{product.description}</p>}
                 </div>
-              )
-            })}
-          </div>
+
+                <div>
+                  {variants.length > 0 && (
+                    <div className="mt-3.5">
+                      <span className="text-xs text-slate-300 block mb-2 font-medium">選擇規格：</span>
+                      <div className="flex flex-wrap gap-2">
+                        {variants.map((v) => {
+                          const isSelected = currentSelected === v
+                          return (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => setSelectedVariants((prev) => ({ ...prev, [product.id]: v }))}
+                              className={`px-3 py-1.5 rounded-xl text-xs md:text-sm font-medium border transition cursor-pointer ${
+                                isSelected
+                                  ? isLive ? 'bg-rose-500/10 border-rose-500 text-rose-400 font-bold' : isSpot ? 'bg-blue-500/10 border-blue-500 text-blue-400 font-bold' : 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
+                                : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:text-white'
+                            }`}
+                            >
+                              {isSelected ? '✓ ' : ''}{v}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-3.5 border-t border-slate-800/80 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-slate-400 font-medium">代購價</div>
+                    <div className="text-emerald-400 font-black text-xl font-mono">NT$ {product.price?.toLocaleString()}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => addToCart(product)}
+                    className={`px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold text-white shadow-md transition-all cursor-pointer ${
+                      isLive ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/30' : isSpot ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/30' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30'
+                    }`}
+                  >
+                    + 加入購物車
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
         )}
       </div>
 
@@ -1646,7 +1652,7 @@ function StoreContent() {
           </div>
         </div>
       )}
-    </div>
+  </div>
   )
 }
 

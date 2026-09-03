@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
-  DollarSign, TrendingUp, Package, RefreshCw, Ticket, Truck
+  DollarSign, TrendingUp, Package, RefreshCw, Ticket, Truck, ShoppingBag
 } from 'lucide-react'
 
 interface OrderItem {
@@ -176,6 +176,22 @@ export default function AdminRevenuePage() {
   const totalProfit = filteredOrders.reduce((sum, ord) => sum + ord.calculated_profit, 0)
   const totalDiscount = filteredOrders.reduce((sum, ord) => sum + ord.discount_amount, 0)
   const totalAbsorbedShipping = filteredOrders.reduce((sum, ord) => sum + ord.absorbed_shipping, 0)
+  
+  // 總進貨成本
+  const totalCost = filteredOrders.reduce((sum, ord) => {
+    let orderCost = 0
+    if (ord.items && Array.isArray(ord.items)) {
+      ord.items.forEach(it => {
+        if (it.status !== 'failed') {
+          const c = it.cost || 0
+          const q = it.quantity || 1
+          orderCost += c * q
+        }
+      })
+    }
+    return sum + orderCost
+  }, 0)
+
   const totalOrderCount = filteredOrders.length
 
   return (
@@ -213,10 +229,18 @@ export default function AdminRevenuePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-2 shadow-xl">
           <span className="text-xs text-slate-400 block">總營收 (實收金額)</span>
           <div className="text-xl md:text-2xl font-black text-white font-mono">NT$ {totalRevenue.toLocaleString()}</div>
+        </div>
+
+        {/* 總進貨成本卡片 */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-2 shadow-xl">
+          <span className="text-xs text-amber-400 block font-bold flex items-center gap-1">
+            <Package className="w-4 h-4" /> 總進貨成本
+          </span>
+          <div className="text-xl md:text-2xl font-black text-amber-400 font-mono">NT$ {totalCost.toLocaleString()}</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-2 shadow-xl">
@@ -233,7 +257,6 @@ export default function AdminRevenuePage() {
           <div className="text-xl md:text-2xl font-black text-rose-400 font-mono">NT$ {totalDiscount.toLocaleString()}</div>
         </div>
 
-        {/* 🟢 新增：自行吸收的免運成本統計 */}
         <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-2 shadow-xl">
           <span className="text-xs text-amber-400 block font-bold flex items-center gap-1">
             <Truck className="w-4 h-4" /> 免運吸收成本
@@ -241,9 +264,12 @@ export default function AdminRevenuePage() {
           <div className="text-xl md:text-2xl font-black text-amber-400 font-mono">NT$ {totalAbsorbedShipping.toLocaleString()}</div>
         </div>
 
+        {/* 🟢 有效訂單數卡片 */}
         <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-2 shadow-xl">
-          <span className="text-xs text-slate-400 block">有效訂單數</span>
-          <div className="text-xl md:text-2xl font-black text-white font-mono">{totalOrderCount} 筆</div>
+          <span className="text-xs text-sky-400 block font-bold flex items-center gap-1">
+            <ShoppingBag className="w-4 h-4" /> 有效訂單數
+          </span>
+          <div className="text-xl md:text-2xl font-black text-sky-400 font-mono">{totalOrderCount} 筆</div>
         </div>
       </div>
 

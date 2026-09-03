@@ -36,7 +36,9 @@ export async function POST(request: Request) {
 
     let textMessage = ''
 
-    if (type === 'payment_confirmed') {
+    if (type === 'payment_reported') {
+      textMessage = `⏳ 【匯款回報通知】\n買家 ${lineName} 已回報「${batchName}」的匯款！\n匯款金額：NT$ ${amount?.toLocaleString()}\n末五碼：${bankLast5}\n請盡快至後台確認入帳喔！`
+    } else if (type === 'payment_confirmed') {
       textMessage = `✅ 【入帳成功通知】\n您在「${batchName}」的匯款已確認入帳！\n總金額：NT$ ${amount?.toLocaleString()}\n我們正準備為您安排出貨，謝謝您！`
     } else if (type === 'order_shipped') {
       textMessage = `📦 【商品已出貨通知】\n您在「${batchName}」訂購的商品已經寄出囉！\n將配送至 7-11 ${storeName || '指定門市'}，請留意取件簡訊前往取貨。`
