@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { 
   CheckCircle, Truck, X, ShoppingCart, 
   Radio, Tag, MessageSquare, LogOut, Lock, 
-  Package, ShieldCheck, Sparkles, Clock, CreditCard, Send, MapPin, ExternalLink, Archive, Boxes, Globe, User, Phone, Save, Info, ZoomIn, FileText, ChevronLeft, ChevronRight, Image as ImageIcon, Megaphone, Ticket
+  Package, ShieldCheck, Sparkles, Clock, CreditCard, Send, MapPin, ExternalLink, Archive, Boxes, Globe, User, Phone, Save, Info, ZoomIn, FileText, ChevronLeft, ChevronRight, Image as ImageIcon, Megaphone, Ticket, Box, Flame, Snowflake
 } from 'lucide-react'
 
 interface ProductVariant {
@@ -25,6 +25,8 @@ interface Product {
   variants?: (ProductVariant | string)[]
   spec?: string | null
   category?: string | null
+  main_category?: 'overseas' | 'selected'
+  sub_category?: 'limited' | 'international' | 'ambient' | 'refrigerated' | 'frozen'
   status?: string
   created_at?: string
   is_active?: boolean
@@ -58,7 +60,11 @@ interface LineUser {
 function StoreContent() {
   const [batches, setBatches] = useState<Batch[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string>('ALL')
-  const [activeTab, setActiveTab] = useState<'live' | 'ongoing' | 'spot'>('live')
+  
+  // 兩大主分類：海外代購、嚴選好物
+  const [mainTab, setMainTab] = useState<'overseas' | 'selected'>('overseas')
+  const [subTab, setSubTab] = useState<string>('limited')
+
   const [products, setProducts] = useState<Product[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({})
@@ -372,11 +378,17 @@ function StoreContent() {
     }
   }
 
-  const getItemType = (p: Product) => {
-    if (p.category === 'flash' || p.category === 'LIVE') return 'live'
-    if (p.category === 'spot' || p.category === 'SPOT') return 'spot'
-    if (p.category === 'batch' || p.category === 'GENERAL') return 'ongoing'
-    return 'live'
+  const getProductMainCategory = (p: Product): 'overseas' | 'selected' => {
+    if (p.main_category) return p.main_category
+    if (p.category === 'flash' || p.category === 'LIVE' || p.category === 'batch' || p.category === 'GENERAL') return 'overseas'
+    return 'overseas'
+  }
+
+  const getProductSubCategory = (p: Product): string => {
+    if (p.sub_category) return p.sub_category
+    if (p.category === 'flash' || p.category === 'LIVE') return 'limited'
+    if (p.category === 'batch' || p.category === 'GENERAL') return 'international'
+    return 'limited'
   }
 
   const getBatchBadgeWithFlag = (batchId?: string) => {
@@ -412,21 +424,26 @@ function StoreContent() {
 
   const availableProducts = products.filter(p => !isSoldOut(p))
 
-  const tabProducts = availableProducts.filter((p) => {
-    const type = getItemType(p)
-    if (activeTab === 'live') return type === 'live'
-    if (activeTab === 'ongoing') return type === 'ongoing'
-    if (activeTab === 'spot') return type === 'spot'
-    return false
+  const filteredProducts = availableProducts.filter((p) => {
+    const mCat = getProductMainCategory(p)
+    const sCat = getProductSubCategory(p)
+    return mCat === mainTab && sCat === subTab
   })
 
-  const displayedProducts = selectedBatchId === 'ALL' ? tabProducts : tabProducts.filter((p) => p.batch_id === selectedBatchId)
+  const displayedProducts = selectedBatchId === 'ALL' ? filteredProducts : filteredProducts.filter((p) => p.batch_id === selectedBatchId)
 
   const availableBatches = batches.filter((b) => {
     if (b.status === 'ended') return false
-    const count = tabProducts.filter((p) => p.batch_id === b.id).length
+    const count = availableProducts.filter((p) => p.batch_id === b.id && getProductMainCategory(p) === mainTab).length
     return count > 0
   })
+
+  const handleMainTabChange = (tab: 'overseas' | 'selected') => {
+    setMainTab(tab)
+    setSelectedBatchId('ALL')
+    if (tab === 'overseas') setSubTab('limited')
+    else if (tab === 'selected') setSubTab('ambient')
+  }
 
   const addToCart = async (product: Product) => {
     if (!lineUser) {
@@ -436,11 +453,11 @@ function StoreContent() {
 
     const variants = extractVariants(product)
     const selectedVariant = selectedVariants[product.id] || (variants.length > 0 ? variants[0] : '')
-    const isLive = activeTab === 'live'
+    const isLive = getProductSubCategory(product) === 'limited'
     const batch = batches.find((b) => b.id === product.batch_id)
     const images = getProductImages(product)
     const batchIdVal = product.batch_id || null
-    const batchNameVal = batch ? batch.name : (activeTab === 'spot' ? '現貨專區' : '各國連線')
+    const batchNameVal = batch ? batch.name : '嚴選好物'
     const imgUrlVal = images.length > 0 ? images[0] : null
 
     try {
@@ -559,7 +576,7 @@ function StoreContent() {
             items: existingItems, 
             total_amount: newTotalAmount, 
             total_price: newTotalAmount,
-            line_id: lineUser.userId // 🟢 確保更新時也帶上 line_id
+            line_id: lineUser.userId
           }).eq('id', targetOrder.id)
         } else {
           const batchSubtotal = batchItems.reduce((s, it) => s + it.price * it.quantity, 0)
@@ -584,7 +601,7 @@ function StoreContent() {
             order_no: orderNo,
             batch_id: bId !== 'DEFAULT' ? bId : null,
             line_name: currentLineName,
-            line_id: lineUser.userId, // 🟢 關鍵：把 LINE ID 存入資料庫
+            line_id: lineUser.userId,
             buyer_name: currentLineName,
             customer_name: currentLineName,
             note: `${batchName}`,
@@ -681,7 +698,6 @@ function StoreContent() {
 
       if (error) throw error
 
-      // 🟢 自動觸發 LINE 通知 API
       try {
         await fetch('/api/line/notify', {
           method: 'POST',
@@ -901,10 +917,6 @@ function StoreContent() {
     )
   }
 
-  const liveCount = availableProducts.filter(p => getItemType(p) === 'live').length
-  const ongoingCount = availableProducts.filter(p => getItemType(p) === 'ongoing').length
-  const spotCount = availableProducts.filter(p => getItemType(p) === 'spot').length
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -918,9 +930,9 @@ function StoreContent() {
 
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800/80 pb-5">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-emerald-400 flex items-center gap-2">一条魚代購</h1>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-emerald-400 flex items-center gap-2">一条魚代購與嚴選</h1>
             <p className="text-xs md:text-sm text-slate-400 mt-1 flex items-center gap-1.5 font-medium">
-              <Truck className="w-4 h-4 text-emerald-400" /> 即時現場連線・LINE 認證搶單系統
+              <Truck className="w-4 h-4 text-emerald-400" /> 海外代購與 7-11 常溫/冷藏/冷凍嚴選好物團購
             </p>
           </div>
 
@@ -971,7 +983,7 @@ function StoreContent() {
               </div>
               <div>
                 <p className="text-sm md:text-base font-bold text-white flex items-center gap-2">🎉 歡迎回來，<span className="text-emerald-400">{lineUser.displayName}</span>！</p>
-                <p className="text-xs md:text-sm text-slate-400 mt-0.5">批次結束前可隨時追加商品，結束後將開放匯款與 7-11 寄貨資料填寫！</p>
+                <p className="text-xs md:text-sm text-slate-400 mt-0.5">溫層商品請分開結帳（常溫、冷藏、冷凍獨立配送），隨時可查看訂單進度！</p>
               </div>
             </div>
             <button onClick={openMyOrdersModal} className="text-xs md:text-sm bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 px-4 py-2 rounded-xl font-medium transition whitespace-nowrap self-end sm:self-auto cursor-pointer">
@@ -986,7 +998,7 @@ function StoreContent() {
               </div>
               <div>
                 <p className="text-sm md:text-base font-bold text-slate-200">您尚未綁定 LINE 帳號</p>
-                <p className="text-xs md:text-sm text-slate-400 mt-0.5">您可隨意瀏覽現場商品，登記搶單時請一鍵完成 LINE 綁定！</p>
+                <p className="text-xs md:text-sm text-slate-400 mt-0.5">您可隨意瀏覽各專區商品，登記搶單時請一鍵完成 LINE 綁定！</p>
               </div>
             </div>
             <button onClick={() => setShowLoginPrompt(true)} className="text-xs md:text-sm bg-[#06C755] hover:bg-[#05b34c] text-white px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-950/30 whitespace-nowrap self-end sm:self-auto cursor-pointer">
@@ -995,30 +1007,92 @@ function StoreContent() {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-2.5 p-2 bg-slate-900 border border-slate-800 rounded-2xl">
-          <button onClick={() => { setActiveTab('live'); setSelectedBatchId('ALL'); }} className={`py-3.5 px-2 rounded-xl text-sm md:text-base font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'live' ? 'bg-rose-600 text-white shadow-lg shadow-rose-950/40' : 'text-slate-400 hover:text-slate-200'}`}>
-            <Radio className={`w-4 h-4 md:w-5 md:h-5 ${activeTab === 'live' ? 'animate-pulse text-white' : 'text-rose-400'}`} />
-            <span className="truncate">限時下單 ({liveCount})</span>
+        {/* 🌟 第一層主分類按鈕 (海外代購 / 嚴選好物，拿掉現貨專區) */}
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={() => handleMainTabChange('overseas')}
+            className={`py-4 px-6 rounded-2xl font-black text-base md:text-lg transition flex items-center justify-center gap-2.5 cursor-pointer shadow-lg ${
+              mainTab === 'overseas' 
+                ? 'bg-blue-600 text-white shadow-blue-950/50' 
+                : 'bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-800'
+            }`}
+          >
+            <Globe className="w-6 h-6" /> 海外代購
           </button>
-          <button onClick={() => { setActiveTab('ongoing'); setSelectedBatchId('ALL'); }} className={`py-3.5 px-2 rounded-xl text-sm md:text-base font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'ongoing' ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20' : 'text-slate-400 hover:text-slate-200'}`}>
-            <Globe className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="truncate">各國連線 ({ongoingCount})</span>
-          </button>
-          <button onClick={() => { setActiveTab('spot'); setSelectedBatchId('ALL'); }} className={`py-3.5 px-2 rounded-xl text-sm md:text-base font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'spot' ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40' : 'text-slate-400 hover:text-slate-200'}`}>
-            <Boxes className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="truncate">現貨專區 ({spotCount})</span>
+
+          <button
+            onClick={() => handleMainTabChange('selected')}
+            className={`py-4 px-6 rounded-2xl font-black text-base md:text-lg transition flex items-center justify-center gap-2.5 cursor-pointer shadow-lg ${
+              mainTab === 'selected' 
+                ? 'bg-emerald-600 text-white shadow-emerald-950/50' 
+                : 'bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-800'
+            }`}
+          >
+            <Box className="w-6 h-6" /> 嚴選好物
           </button>
         </div>
 
-        {availableBatches.length > 0 && (
+        {/* 🌟 第二層子分類按鈕 */}
+        {mainTab === 'overseas' && (
+          <div className="flex gap-3 bg-slate-900/60 p-2 rounded-2xl border border-slate-800/80">
+            <button
+              onClick={() => setSubTab('limited')}
+              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                subTab === 'limited' ? 'bg-rose-500 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Clock className="w-4 h-4" /> 限時下單
+            </button>
+            <button
+              onClick={() => setSubTab('international')}
+              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                subTab === 'international' ? 'bg-blue-500 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Globe className="w-4 h-4" /> 各國連線
+            </button>
+          </div>
+        )}
+
+        {mainTab === 'selected' && (
+          <div className="flex gap-2 bg-slate-900/60 p-2 rounded-2xl border border-slate-800/80 overflow-x-auto">
+            <button
+              onClick={() => setSubTab('ambient')}
+              className={`flex-1 min-w-[100px] py-2.5 px-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                subTab === 'ambient' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Box className="w-4 h-4" /> 常溫
+            </button>
+            <button
+              onClick={() => setSubTab('refrigerated')}
+              className={`flex-1 min-w-[100px] py-2.5 px-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                subTab === 'refrigerated' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Flame className="w-4 h-4" /> 冷藏
+            </button>
+            <button
+              onClick={() => setSubTab('frozen')}
+              className={`flex-1 min-w-[100px] py-2.5 px-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                subTab === 'frozen' ? 'bg-cyan-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Snowflake className="w-4 h-4" /> 冷凍
+            </button>
+          </div>
+        )}
+
+        {/* 批次篩選（僅在海外代購的各國連線中顯示） */}
+        {mainTab === 'overseas' && subTab === 'international' && availableBatches.length > 0 && (
           <div className="flex gap-2.5 pb-2 overflow-x-auto">
-            <button onClick={() => setSelectedBatchId('ALL')} className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${selectedBatchId === 'ALL' ? activeTab === 'live' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50' : activeTab === 'ongoing' ? 'bg-emerald-500 text-slate-950' : 'bg-blue-500/20 text-blue-400 border border-blue-500/50' : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'}`}>
-              全部 ({tabProducts.length})
+            <button onClick={() => setSelectedBatchId('ALL')} className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${selectedBatchId === 'ALL' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'}`}>
+              全部國家 ({filteredProducts.length})
             </button>
             {availableBatches.map((b) => {
-              const count = tabProducts.filter((p) => p.batch_id === b.id).length
+              const count = filteredProducts.filter((p) => p.batch_id === b.id).length
               return (
-                <button key={b.id} onClick={() => setSelectedBatchId(b.id)} className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${selectedBatchId === b.id ? activeTab === 'live' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50' : activeTab === 'ongoing' ? 'bg-emerald-500 text-slate-950' : 'bg-blue-500/20 text-blue-400 border border-blue-500/50' : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'}`}>
+                <button key={b.id} onClick={() => setSelectedBatchId(b.id)} className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${selectedBatchId === b.id ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'}`}>
                   {getBatchBadgeWithFlag(b.id)} ({count})
                 </button>
               )
@@ -1030,13 +1104,12 @@ function StoreContent() {
           <p className="text-slate-500 py-16 text-center text-sm md:text-base">載入商品中...</p>
         ) : displayedProducts.length === 0 ? (
           <div className="bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl p-16 text-center text-slate-400 text-sm md:text-base">
-            {activeTab === 'live' ? '🔴 目前此專區尚未有限時下單商品，請稍候！' : activeTab === 'ongoing' ? '📦 目前此專區尚未有各國連線商品。' : '🏷️ 目前現貨專區尚無商品上架。'}
+            📦 目前這個分類底下還沒有上架商品喔！
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayedProducts.map((product) => {
-              const isLive = getItemType(product) === 'live'
-              const isSpot = getItemType(product) === 'spot'
+              const isLive = getProductSubCategory(product) === 'limited'
               const variants = extractVariants(product)
               const currentSelected = selectedVariants[product.id] || (variants.length > 0 ? variants[0] : '')
               const images = getProductImages(product)
@@ -1047,12 +1120,14 @@ function StoreContent() {
                     {isLive ? (
                       <span className="flex items-center gap-1 bg-rose-500/20 border border-rose-500/50 text-rose-400 text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-md">
                         <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                        {product.batch_id ? getBatchBadgeWithFlag(product.batch_id) : '限時下單'}
+                        限時下單
                       </span>
-                    ) : isSpot ? (
-                      <span className="bg-blue-500/20 border border-blue-500/50 text-blue-400 text-xs font-bold px-2.5 py-1 rounded-full">現貨供應</span>
-                    ) : (
+                    ) : product.batch_id ? (
                       <span className="bg-slate-800 text-slate-200 text-xs font-bold px-3 py-1 rounded-full border border-slate-700 shadow-sm">{getBatchBadgeWithFlag(product.batch_id)}</span>
+                    ) : (
+                      <span className="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-3 py-1 rounded-full border border-emerald-500/30">
+                        {getProductSubCategory(product) === 'ambient' ? '常溫好物' : getProductSubCategory(product) === 'refrigerated' ? '冷藏好物' : '冷凍好物'}
+                      </span>
                     )}
                   </div>
 
@@ -1064,62 +1139,60 @@ function StoreContent() {
                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold gap-1">
                           <Info className="w-4 h-4 text-emerald-400" /> 點擊查看商品說明
                         </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-40 bg-slate-800/60 rounded-xl mb-3.5 flex items-center justify-center text-slate-400 text-sm font-medium">
-                      {isLive ? '🔴 限時下單熱賣中' : '📦 專櫃選品'}
-                    </div>
-                  )}
-                  <h3 className="font-bold text-slate-100 text-lg pr-16 leading-snug group-hover:text-emerald-400 transition">{product.name}</h3>
-                  {product.description && <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{product.description}</p>}
-                </div>
-
-                <div>
-                  {variants.length > 0 && (
-                    <div className="mt-3.5">
-                      <span className="text-xs text-slate-300 block mb-2 font-medium">選擇規格：</span>
-                      <div className="flex flex-wrap gap-2">
-                        {variants.map((v) => {
-                          const isSelected = currentSelected === v
-                          return (
-                            <button
-                              key={v}
-                              type="button"
-                              onClick={() => setSelectedVariants((prev) => ({ ...prev, [product.id]: v }))}
-                              className={`px-3 py-1.5 rounded-xl text-xs md:text-sm font-medium border transition cursor-pointer ${
-                                isSelected
-                                  ? isLive ? 'bg-rose-500/10 border-rose-500 text-rose-400 font-bold' : isSpot ? 'bg-blue-500/10 border-blue-500 text-blue-400 font-bold' : 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
-                                : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:text-white'
-                            }`}
-                            >
-                              {isSelected ? '✓ ' : ''}{v}
-                            </button>
-                          )
-                        })}
                       </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-3.5 border-t border-slate-800/80 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs text-slate-400 font-medium">代購價</div>
-                    <div className="text-emerald-400 font-black text-xl font-mono">NT$ {product.price?.toLocaleString()}</div>
+                    ) : (
+                      <div className="w-full h-40 bg-slate-800/60 rounded-xl mb-3.5 flex items-center justify-center text-slate-400 text-sm font-medium">
+                        🐟 一條魚嚴選
+                      </div>
+                    )}
+                    <h3 className="font-bold text-slate-100 text-lg pr-16 leading-snug group-hover:text-emerald-400 transition">{product.name}</h3>
+                    {product.description && <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{product.description}</p>}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => addToCart(product)}
-                    className={`px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold text-white shadow-md transition-all cursor-pointer ${
-                      isLive ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/30' : isSpot ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/30' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30'
-                    }`}
-                  >
-                    + 加入購物車
-                  </button>
+
+                  <div>
+                    {variants.length > 0 && (
+                      <div className="mt-3.5">
+                        <span className="text-xs text-slate-300 block mb-2 font-medium">選擇規格：</span>
+                        <div className="flex flex-wrap gap-2">
+                          {variants.map((v) => {
+                            const isSelected = currentSelected === v
+                            return (
+                              <button
+                                key={v}
+                                type="button"
+                                onClick={() => setSelectedVariants((prev) => ({ ...prev, [product.id]: v }))}
+                                className={`px-3 py-1.5 rounded-xl text-xs md:text-sm font-medium border transition cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
+                                    : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:text-white'
+                                }`}
+                              >
+                                {isSelected ? '✓ ' : ''}{v}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3.5 border-t border-slate-800/80 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-slate-400 font-medium">售價</div>
+                      <div className="text-emerald-400 font-black text-xl font-mono">NT$ {product.price?.toLocaleString()}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => addToCart(product)}
+                      className="px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold text-white shadow-md transition-all cursor-pointer bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30"
+                    >
+                      + 加入購物車
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
         )}
       </div>
 
@@ -1635,7 +1708,7 @@ function StoreContent() {
                           <span className="font-bold text-emerald-400">{lineUser.displayName}</span>
                           <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full font-medium">LINE 已綁定</span>
                         </div>
-                        <span className="text-slate-400 block text-xs mt-0.5">批次結束前可隨時追加商品</span>
+                        <span className="text-slate-400 block text-xs mt-0.5">溫層商品請分開獨立結帳</span>
                       </div>
                     </div>
                   )}

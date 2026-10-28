@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Zap, Plus, Check, Layers, Image as ImageIcon, Tag, DollarSign, Package, Upload, FileText, Trash2, Send, CheckSquare, Square, Box, Edit3, X, AlertCircle } from 'lucide-react'
+import { Zap, Plus, Check, Layers, Image as ImageIcon, Tag, DollarSign, Package, Upload, FileText, Trash2, Send, CheckSquare, Square, Box, Edit3, X, AlertCircle, Globe, Flame, Snowflake } from 'lucide-react'
 
 interface Batch {
   id: string
@@ -20,7 +20,8 @@ interface DraftProduct {
   image_url: string | null
   image_urls?: string[] | null
   description: string | null
-  category: 'flash' | 'batch' | 'spot'
+  main_category: 'overseas' | 'selected'
+  sub_category: 'limited' | 'international' | 'ambient' | 'refrigerated' | 'frozen'
   batch_id: string | null
   batch_name: string
 }
@@ -28,7 +29,10 @@ interface DraftProduct {
 export default function QuickAddPage() {
   const [topTab, setTopTab] = useState<'form' | 'drafts'>('form')
 
-  const [activeTab, setActiveTab] = useState<'flash' | 'batch' | 'spot'>('flash')
+  // 新的兩大分類與子分類狀態
+  const [mainCategory, setMainCategory] = useState<'overseas' | 'selected'>('overseas')
+  const [subCategory, setSubCategory] = useState<string>('limited') // overseas: limited, international | selected: ambient, refrigerated, frozen
+
   const [batches, setBatches] = useState<Batch[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string>('')
   
@@ -38,7 +42,7 @@ export default function QuickAddPage() {
   // 單品輸入表單狀態
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
-  const [cost, setCost] = useState('') // 🟢 成本狀態
+  const [cost, setCost] = useState('')
   const [stock, setStock] = useState('99')
   const [variants, setVariants] = useState('')
   const [imageUrls, setImageUrls] = useState<string[]>([])
@@ -59,7 +63,7 @@ export default function QuickAddPage() {
   const [editingDraft, setEditingDraft] = useState<DraftProduct | null>(null)
   const [editName, setEditName] = useState('')
   const [editPrice, setEditPrice] = useState('')
-  const [editCost, setEditCost] = useState('') // 🟢 草稿編輯成本
+  const [editCost, setEditCost] = useState('')
   const [editStock, setEditStock] = useState('')
   const [editVariants, setEditVariants] = useState('')
   const [editDescription, setEditDescription] = useState('')
@@ -110,6 +114,12 @@ export default function QuickAddPage() {
     } finally {
       setLoadingDrafts(false)
     }
+  }
+
+  const handleMainCategoryChange = (cat: 'overseas' | 'selected') => {
+    setMainCategory(cat)
+    if (cat === 'overseas') setSubCategory('limited')
+    else if (cat === 'selected') setSubCategory('ambient')
   }
 
   const compressImage = (file: File): Promise<Blob> => {
@@ -247,17 +257,21 @@ export default function QuickAddPage() {
     }
   }
 
-  const resolveTargetBatchInfo = (selectedBId: string, currentCategory: 'flash' | 'batch' | 'spot') => {
-    if (currentCategory === 'spot') {
-      return { category: 'spot' as const, batchId: null, batchName: '現貨專區' }
+  const resolveTargetBatchInfo = () => {
+    if (mainCategory === 'selected') {
+      const subName = subCategory === 'ambient' ? '常溫好物' : subCategory === 'refrigerated' ? '冷藏好物' : '冷凍好物'
+      return { batchId: null, batchName: subName }
     }
 
-    const selectedBatch = batches.find(b => b.id === selectedBId)
-    return {
-      category: currentCategory,
-      batchId: selectedBatch ? selectedBatch.id : null,
-      batchName: selectedBatch ? selectedBatch.name : '各國連線'
+    if (subCategory === 'international') {
+      const selectedBatch = batches.find(b => b.id === selectedBatchId)
+      return {
+        batchId: selectedBatch ? selectedBatch.id : null,
+        batchName: selectedBatch ? selectedBatch.name : '各國連線'
+      }
     }
+
+    return { batchId: null, batchName: '限時下單' }
   }
 
   const handleDirectPublish = async (e: React.FormEvent) => {
@@ -269,9 +283,7 @@ export default function QuickAddPage() {
 
     setLoading(true)
     try {
-      const targetInfo = resolveTargetBatchInfo(selectedBatchId, activeTab)
-
-      const finalStock = targetInfo.category === 'spot' ? (Number(stock) || 99) : 9999
+      const batchInfo = resolveTargetBatchInfo()
       const variantsArray = variants
         ? variants.split('\n').map(v => v.trim()).filter(Boolean)
         : ['單一規格']
@@ -279,25 +291,26 @@ export default function QuickAddPage() {
       const productData = {
         name: name.trim(),
         price: Number(price) || 0,
-        cost: Number(cost) || 0, // 🟢 寫入成本
-        stock: finalStock,
+        cost: Number(cost) || 0,
+        stock: 9999,
         variants: variantsArray,
         image_urls: imageUrls,
         image_url: imageUrls.length > 0 ? imageUrls[0] : null,
         description: description.trim() || null,
-        category: targetInfo.category,
-        batch_id: targetInfo.batchId,
-        batch_name: targetInfo.batchName,
+        main_category: mainCategory,
+        sub_category: subCategory,
+        batch_id: batchInfo.batchId,
+        batch_name: batchInfo.batchName,
         is_active: true
       }
 
       const { error } = await supabase.from('products').insert([productData])
       if (error) throw error
 
-      setSuccessMsg(`🚀 成功上架商品：${name.trim()} (${targetInfo.batchName})！`)
+      setSuccessMsg(`🚀 成功上架商品：${name.trim()} (${batchInfo.batchName})！`)
       setName('')
       setPrice('')
-      setCost('') // 🟢 清空成本
+      setCost('')
       setVariants('')
       setImageUrls([])
       setDescription('')
@@ -317,9 +330,7 @@ export default function QuickAddPage() {
       return
     }
 
-    const targetInfo = resolveTargetBatchInfo(selectedBatchId, activeTab)
-
-    const finalStock = targetInfo.category === 'spot' ? (Number(stock) || 99) : 9999
+    const batchInfo = resolveTargetBatchInfo()
     const variantsArray = variants
       ? variants.split('\n').map(v => v.trim()).filter(Boolean)
       : ['單一規格']
@@ -327,15 +338,16 @@ export default function QuickAddPage() {
     const newDraftData = {
       name: name.trim(),
       price: Number(price) || 0,
-      cost: Number(cost) || 0, // 🟢 寫入草稿成本
-      stock: finalStock,
+      cost: Number(cost) || 0,
+      stock: 9999,
       variants: variantsArray,
       image_urls: imageUrls,
       image_url: imageUrls.length > 0 ? imageUrls[0] : null,
       description: description.trim() || null,
-      category: targetInfo.category,
-      batch_id: targetInfo.batchId,
-      batch_name: targetInfo.batchName
+      main_category: mainCategory,
+      sub_category: subCategory,
+      batch_id: batchInfo.batchId,
+      batch_name: batchInfo.batchName
     }
 
     try {
@@ -351,11 +363,11 @@ export default function QuickAddPage() {
         setSelectedDraftIds([...selectedDraftIds, data[0].id])
       }
 
-      setSuccessMsg(`📦 已成功加入雲端草稿暫存 (${targetInfo.batchName})！`)
+      setSuccessMsg(`📦 已成功加入雲端草稿暫存 (${batchInfo.batchName})！`)
       
       setName('')
       setPrice('')
-      setCost('') // 🟢 清空成本
+      setCost('')
       setVariants('')
       setImageUrls([])
       setDescription('')
@@ -371,7 +383,7 @@ export default function QuickAddPage() {
     setEditingDraft(d)
     setEditName(d.name || '')
     setEditPrice(String(d.price || 0))
-    setEditCost(String(d.cost || 0)) // 🟢 帶入草稿成本
+    setEditCost(String(d.cost || 0))
     setEditStock(String(d.stock || 99))
     setEditVariants(Array.isArray(d.variants) ? d.variants.join('\n') : '')
     setEditDescription(d.description || '')
@@ -399,7 +411,7 @@ export default function QuickAddPage() {
       const updatedFields = {
         name: editName.trim(),
         price: Number(editPrice) || 0,
-        cost: Number(editCost) || 0, // 🟢 更新草稿成本
+        cost: Number(editCost) || 0,
         stock: Number(editStock) || 99,
         variants: variantsArray,
         description: editDescription.trim() || null,
@@ -481,13 +493,14 @@ export default function QuickAddPage() {
         return {
           name: d.name,
           price: d.price,
-          cost: d.cost, // 🟢 批次上架時帶入成本
-          stock: d.category === 'spot' ? (d.stock || 99) : 9999,
+          cost: d.cost,
+          stock: 9999,
           variants: d.variants,
           image_urls: imgs,
           image_url: imgs.length > 0 ? imgs[0] : null,
           description: d.description,
-          category: d.category,
+          main_category: d.main_category,
+          sub_category: d.sub_category,
           batch_id: d.batch_id,
           batch_name: d.batch_name,
           is_active: true
@@ -524,7 +537,7 @@ export default function QuickAddPage() {
           全方位快速上架與雲端草稿同步
         </h1>
         <p className="text-xs text-slate-400 mt-1">
-          在此填寫商品資料與成本，快速發布至指定專區或加入雲端草稿暫存！
+          在此填寫商品資料與成本，快速發布至海外代購或 7-11 嚴選好物（常溫、冷藏、冷凍）！
         </p>
       </div>
 
@@ -565,52 +578,113 @@ export default function QuickAddPage() {
 
       {topTab === 'form' ? (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl">
+          
+          {/* 1. 選擇主分類 (海外代購 / 嚴選好物) */}
           <div className="space-y-3">
             <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-emerald-400" /> 1. 選擇上架專區
+              <Layers className="w-4 h-4 text-emerald-400" /> 1. 選擇上架主分類
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setActiveTab('flash')}
-                className={`py-3 rounded-2xl text-xs font-bold transition cursor-pointer border ${
-                  activeTab === 'flash'
-                    ? 'bg-rose-500/20 border-rose-500 text-rose-400 shadow-md'
+                onClick={() => handleMainCategoryChange('overseas')}
+                className={`py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer border flex items-center justify-center gap-2 ${
+                  mainCategory === 'overseas'
+                    ? 'bg-blue-600 border-blue-500 text-white shadow-md'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
-                🔥 限時下單
+                <Globe className="w-4 h-4" /> 海外代購
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab('batch')}
-                className={`py-3 rounded-2xl text-xs font-bold transition cursor-pointer border ${
-                  activeTab === 'batch'
-                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-md'
+                onClick={() => handleMainCategoryChange('selected')}
+                className={`py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer border flex items-center justify-center gap-2 ${
+                  mainCategory === 'selected'
+                    ? 'bg-emerald-600 border-emerald-500 text-white shadow-md'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
-                ✈️ 各國連線
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('spot')}
-                className={`py-3 rounded-2xl text-xs font-bold transition cursor-pointer border ${
-                  activeTab === 'spot'
-                    ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-md'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                📦 現貨專區
+                <Box className="w-4 h-4" /> 嚴選好物 (7-11 團購)
               </button>
             </div>
           </div>
 
-          {activeTab !== 'spot' && (
+          {/* 2. 選擇子分類 / 溫層 */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-emerald-400" /> 2. 選擇子分類 / 溫層
+            </label>
+            {mainCategory === 'overseas' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSubCategory('limited')}
+                  className={`py-3 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                    subCategory === 'limited'
+                      ? 'bg-rose-500/20 border-rose-500 text-rose-400 shadow'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  ⏳ 限時下單
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSubCategory('international')}
+                  className={`py-3 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                    subCategory === 'international'
+                      ? 'bg-blue-500/20 border-blue-500 text-blue-400 shadow'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  🌍 各國連線
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSubCategory('ambient')}
+                  className={`py-3 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                    subCategory === 'ambient'
+                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  📦 常溫
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSubCategory('refrigerated')}
+                  className={`py-3 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                    subCategory === 'refrigerated'
+                      ? 'bg-amber-500/20 border-amber-500 text-amber-400 shadow'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  🔥 冷藏
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSubCategory('frozen')}
+                  className={`py-3 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                    subCategory === 'frozen'
+                      ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 shadow'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  ❄️ 冷凍
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 若為海外代購-各國連線，顯示批次選擇 */}
+          {mainCategory === 'overseas' && subCategory === 'international' && (
             <div className="space-y-3 p-4 bg-slate-950/60 border border-slate-800 rounded-2xl">
               <div className="flex justify-between items-center">
                 <label className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                  📌 2. 選擇進行中的所屬批次
+                  📌 選擇所屬連線批次
                 </label>
                 <button
                   type="button"
@@ -666,14 +740,13 @@ export default function QuickAddPage() {
               <input
                 type="text"
                 required
-                placeholder="例如：Bakehouse 蛋塔"
+                placeholder="例如：日本北海道白色戀人"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
               />
             </div>
 
-            {/* 🟢 售價與成本輸入並排 */}
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
@@ -703,20 +776,6 @@ export default function QuickAddPage() {
               </div>
             </div>
           </div>
-
-          {activeTab === 'spot' && (
-            <div className="space-y-1.5 max-w-xs">
-              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                <Package className="w-3.5 h-3.5 text-slate-400" /> 現貨庫存
-              </label>
-              <input
-                type="number"
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
-              />
-            </div>
-          )}
 
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
@@ -981,7 +1040,7 @@ export default function QuickAddPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-300">售價 (NT$)</label>
                   <input
@@ -1000,16 +1059,6 @@ export default function QuickAddPage() {
                     value={editCost}
                     onChange={(e) => setEditCost(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 font-bold focus:outline-none focus:border-emerald-400"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-300">庫存</label>
-                  <input
-                    type="number"
-                    required
-                    value={editStock}
-                    onChange={(e) => setEditStock(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                   />
                 </div>
               </div>
