@@ -29,9 +29,8 @@ interface DraftProduct {
 export default function QuickAddPage() {
   const [topTab, setTopTab] = useState<'form' | 'drafts'>('form')
 
-  // 新的兩大分類與子分類狀態
   const [mainCategory, setMainCategory] = useState<'overseas' | 'selected'>('overseas')
-  const [subCategory, setSubCategory] = useState<string>('limited') // overseas: limited, international | selected: ambient, refrigerated, frozen
+  const [subCategory, setSubCategory] = useState<string>('limited')
 
   const [batches, setBatches] = useState<Batch[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string>('')
@@ -39,7 +38,6 @@ export default function QuickAddPage() {
   const [showNewBatchInput, setShowNewBatchInput] = useState(false)
   const [newBatchName, setNewBatchName] = useState('')
 
-  // 單品輸入表單狀態
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [cost, setCost] = useState('')
@@ -53,13 +51,11 @@ export default function QuickAddPage() {
   const [successMsg, setSuccessMsg] = useState('')
   const [loading, setLoading] = useState(false)
   
-  // 雲端草稿暫存區狀態
   const [drafts, setDrafts] = useState<DraftProduct[]>([])
   const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([])
   const [batchPublishing, setBatchPublishing] = useState(false)
   const [loadingDrafts, setLoadingDrafts] = useState(false)
 
-  // 編輯草稿的 Modal 狀態
   const [editingDraft, setEditingDraft] = useState<DraftProduct | null>(null)
   const [editName, setEditName] = useState('')
   const [editPrice, setEditPrice] = useState('')
@@ -143,7 +139,7 @@ export default function QuickAddPage() {
             }
           } else {
             if (height > MAX_HEIGHT) {
-              width = Math.round((width * MAX_HEIGHT) / height)
+              width = Math.round((height * MAX_HEIGHT) / height)
               height = MAX_HEIGHT
             }
           }
@@ -258,20 +254,18 @@ export default function QuickAddPage() {
   }
 
   const resolveTargetBatchInfo = () => {
+    // 只要有選擇批次，就抓取對應的批次 ID 與名稱；若沒有則給予預設名稱
+    const selectedBatch = batches.find(b => b.id === selectedBatchId)
+    if (selectedBatch) {
+      return { batchId: selectedBatch.id, batchName: selectedBatch.name }
+    }
+
+    // 若尚未建立批次，根據當前分類給予預設名稱
     if (mainCategory === 'selected') {
       const subName = subCategory === 'ambient' ? '常溫好物' : subCategory === 'refrigerated' ? '冷藏好物' : '冷凍好物'
       return { batchId: null, batchName: subName }
     }
-
-    if (subCategory === 'international') {
-      const selectedBatch = batches.find(b => b.id === selectedBatchId)
-      return {
-        batchId: selectedBatch ? selectedBatch.id : null,
-        batchName: selectedBatch ? selectedBatch.name : '各國連線'
-      }
-    }
-
-    return { batchId: null, batchName: '限時下單' }
+    return { batchId: null, batchName: subCategory === 'international' ? '各國連線' : '限時下單' }
   }
 
   const handleDirectPublish = async (e: React.FormEvent) => {
@@ -679,58 +673,56 @@ export default function QuickAddPage() {
             )}
           </div>
 
-          {/* 若為海外代購-各國連線，顯示批次選擇 */}
-          {mainCategory === 'overseas' && subCategory === 'international' && (
-            <div className="space-y-3 p-4 bg-slate-950/60 border border-slate-800 rounded-2xl">
-              <div className="flex justify-between items-center">
-                <label className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                  📌 選擇所屬連線批次
-                </label>
+          {/* 🌟 3. 無論是海外代購還是嚴選好物，現在都顯示批次選擇與建立功能！ */}
+          <div className="space-y-3 p-4 bg-slate-950/60 border border-slate-800 rounded-2xl">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                📌 3. 選擇所屬團購 / 連線批次
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowNewBatchInput(!showNewBatchInput)}
+                className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer font-semibold"
+              >
+                <Plus className="w-3.5 h-3.5" /> {showNewBatchInput ? '取消新增' : '建立新批次'}
+              </button>
+            </div>
+
+            {showNewBatchInput && (
+              <div className="flex gap-2 pt-1">
+                <input
+                  type="text"
+                  placeholder="輸入新批次名稱（例：11月生鮮團）..."
+                  value={newBatchName}
+                  onChange={(e) => setNewBatchName(e.target.value)}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
+                />
                 <button
                   type="button"
-                  onClick={() => setShowNewBatchInput(!showNewBatchInput)}
-                  className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer font-semibold"
+                  onClick={handleCreateBatch}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-bold transition cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5" /> {showNewBatchInput ? '取消新增' : '建立新批次'}
+                  確認建立
                 </button>
               </div>
+            )}
 
-              {showNewBatchInput && (
-                <div className="flex gap-2 pt-1">
-                  <input
-                    type="text"
-                    placeholder="輸入新批次名稱..."
-                    value={newBatchName}
-                    onChange={(e) => setNewBatchName(e.target.value)}
-                    className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCreateBatch}
-                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-bold transition cursor-pointer"
-                  >
-                    確認建立
-                  </button>
-                </div>
+            <select
+              value={selectedBatchId}
+              onChange={(e) => setSelectedBatchId(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
+            >
+              {batches.length === 0 ? (
+                <option value="">目前尚無批次，請點擊上方「建立新批次」</option>
+              ) : (
+                batches.map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))
               )}
-
-              <select
-                value={selectedBatchId}
-                onChange={(e) => setSelectedBatchId(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
-              >
-                {batches.length === 0 ? (
-                  <option value="">目前尚無批次，請點擊上方「建立新批次」</option>
-                ) : (
-                  batches.map(b => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-          )}
+            </select>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -740,7 +732,7 @@ export default function QuickAddPage() {
               <input
                 type="text"
                 required
-                placeholder="例如：日本北海道白色戀人"
+                placeholder="例如：北海道干貝 / 泡菜"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
@@ -784,7 +776,7 @@ export default function QuickAddPage() {
             </div>
             <textarea
               rows={3}
-              placeholder="例如：&#10;原味&#10;巧克力"
+              placeholder="例如：&#10;原味&#10;辣味"
               value={variants}
               onChange={(e) => setVariants(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400 resize-none font-mono"

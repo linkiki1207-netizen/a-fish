@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { Package, Trash2, Tag, Layers, Search, AlertCircle, Edit3, X, Check, DollarSign, Image as ImageIcon, FileText, Eye, EyeOff, Upload } from 'lucide-react'
+import { Package, Trash2, Tag, Layers, Search, AlertCircle, Edit3, X, Check, DollarSign, Image as ImageIcon, FileText, Eye, EyeOff, Upload, Globe, Box, Flame, Snowflake, Clock } from 'lucide-react'
 
 export default function AdminProductsPage() {
   const router = useRouter()
@@ -11,25 +11,29 @@ export default function AdminProductsPage() {
   const [batches, setBatches] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   
-  const [activeTab, setActiveTab] = useState<'all' | 'flash' | 'batch' | 'spot'>('all')
+  // 新的主分類與子分類篩選狀態
+  const [activeMainTab, setActiveMainTab] = useState<'all' | 'overseas' | 'selected'>('all')
+  const [activeSubTab, setActiveSubTab] = useState<string>('ALL')
   const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('ALL')
 
   // 編輯商品的 Modal 狀態
   const [editingProduct, setEditingProduct] = useState<any | null>(null)
   const [editName, setEditName] = useState('')
   const [editPrice, setEditPrice] = useState('')
-  const [editCost, setEditCost] = useState('') // 🟢 編輯成本狀態
+  const [editCost, setEditCost] = useState('')
   const [editStock, setEditStock] = useState('')
   const [editVariants, setEditVariants] = useState('')
   const [editDescription, setEditDescription] = useState('')
   
-  // 🟢 多圖編輯狀態
+  // 多圖編輯狀態
   const [editImageUrls, setEditImageUrls] = useState<string[]>([])
   const [newImageUrlInput, setNewImageUrlInput] = useState('')
   const [uploadingImage, setUploadingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [editCategory, setEditCategory] = useState<'flash' | 'batch' | 'spot'>('flash')
+  // 編輯時的分類狀態
+  const [editMainCategory, setEditMainCategory] = useState<'overseas' | 'selected'>('overseas')
+  const [editSubCategory, setEditSubCategory] = useState<string>('limited')
   const [editBatchId, setEditBatchId] = useState('')
 
   const [updating, setUpdating] = useState(false)
@@ -107,8 +111,8 @@ export default function AdminProductsPage() {
     setEditingProduct(p)
     setEditName(p.name || '')
     setEditPrice(String(p.price || 0))
-    setEditCost(String(p.cost || 0)) // 🟢 帶入商品成本
-    setEditStock(String(p.stock || 0))
+    setEditCost(String(p.cost || 0))
+    setEditStock(String(p.stock || 9999))
     setEditVariants(Array.isArray(p.variants) ? p.variants.join('\n') : (p.variants || ''))
     setEditDescription(p.description || '')
     
@@ -121,7 +125,10 @@ export default function AdminProductsPage() {
     setEditImageUrls(imgs)
     setNewImageUrlInput('')
 
-    setEditCategory(p.category || 'flash')
+    const mCat = p.main_category || 'overseas'
+    const sCat = p.sub_category || 'limited'
+    setEditMainCategory(mCat)
+    setEditSubCategory(sCat)
     setEditBatchId(p.batch_id || (batches.length > 0 ? batches[0].id : ''))
   }
 
@@ -153,9 +160,7 @@ export default function AdminProductsPage() {
           .from('product-images')
           .upload(filePath, file)
 
-        if (uploadError) {
-          throw uploadError
-        }
+        if (uploadError) throw uploadError
 
         const { data: publicURLData } = supabase.storage
           .from('product-images')
@@ -184,10 +189,10 @@ export default function AdminProductsPage() {
 
     setUpdating(true)
     try {
-      let targetBatchName = '現貨專區'
+      let targetBatchName = editSubCategory === 'ambient' ? '常溫好物' : editSubCategory === 'refrigerated' ? '冷藏好物' : editSubCategory === 'frozen' ? '冷凍好物' : '限時下單'
       let targetBatchId = null
 
-      if (editCategory === 'flash' || editCategory === 'batch') {
+      if (editMainCategory === 'overseas' && editSubCategory === 'international') {
         const found = batches.find(b => b.id === editBatchId)
         if (found) {
           targetBatchName = found.name
@@ -202,13 +207,14 @@ export default function AdminProductsPage() {
       const updatedData = {
         name: editName.trim(),
         price: Number(editPrice) || 0,
-        cost: Number(editCost) || 0, // 🟢 儲存成本
-        stock: editCategory === 'spot' ? (Number(editStock) || 0) : 9999,
+        cost: Number(editCost) || 0,
+        stock: 9999,
         variants: variantsArray,
         description: editDescription.trim() || null,
         image_urls: editImageUrls,
         image_url: editImageUrls.length > 0 ? editImageUrls[0] : null,
-        category: editCategory,
+        main_category: editMainCategory,
+        sub_category: editSubCategory,
         batch_id: targetBatchId,
         batch_name: targetBatchName,
       }
@@ -235,24 +241,25 @@ export default function AdminProductsPage() {
   const endedBatchIds = new Set(batches.filter(b => b.status === 'ended').map(b => b.id))
   const endedBatchNames = new Set(batches.filter(b => b.status === 'ended').map(b => b.name))
 
-  const filteredProducts = products.filter(p => {
-    const isBatchEnded = (p.batch_id && endedBatchIds.has(p.batch_id)) || 
-                         (p.batch_name && endedBatchNames.has(p.batch_name))
-    if (isBatchEnded) return false
+  const validProducts = products.filter(p => {
+    return !((p.batch_id && endedBatchIds.has(p.batch_id)) || (p.batch_name && endedBatchNames.has(p.batch_name)))
+  })
 
-    if (activeTab === 'flash' && p.category !== 'flash') return false
-    if (activeTab === 'batch' && p.category !== 'batch') return false
-    if (activeTab === 'spot' && p.category !== 'spot') return false
+  // 篩選邏輯
+  const filteredProducts = validProducts.filter(p => {
+    const mCat = p.main_category || 'overseas'
+    const sCat = p.sub_category || 'limited'
+
+    if (activeMainTab === 'overseas' && mCat !== 'overseas') return false
+    if (activeMainTab === 'selected' && mCat !== 'selected') return false
+
+    if (activeSubTab !== 'ALL' && sCat !== activeSubTab) return false
 
     if (selectedBatchFilter !== 'ALL') {
       if (p.batch_id !== selectedBatchFilter) return false
     }
 
     return true
-  })
-
-  const validProducts = products.filter(p => {
-    return !((p.batch_id && endedBatchIds.has(p.batch_id)) || (p.batch_name && endedBatchNames.has(p.batch_name)))
   })
 
   const getVariantsArray = (variants: any): string[] => {
@@ -276,7 +283,7 @@ export default function AdminProductsPage() {
             商品管理中心
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            統一檢視與管理所有限時下單、各國連線批次與現貨專區商品（已結束批次的商品將自動隱藏）。
+            統一檢視與管理所有海外代購與 7-11 嚴選好物商品（已結束批次的商品將自動隱藏）。
           </p>
         </div>
       </div>
@@ -287,11 +294,12 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* 🌟 第一層主分類按鈕 */}
+      <div className="grid grid-cols-3 gap-3">
         <button
-          onClick={() => { setActiveTab('all'); setSelectedBatchFilter('ALL'); }}
+          onClick={() => { setActiveMainTab('all'); setActiveSubTab('ALL'); setSelectedBatchFilter('ALL'); }}
           className={`p-4 rounded-2xl border text-left transition cursor-pointer ${
-            activeTab === 'all' ? 'bg-slate-800 border-emerald-500 text-white shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+            activeMainTab === 'all' ? 'bg-slate-800 border-emerald-500 text-white shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
           }`}
         >
           <div className="text-xs font-semibold text-slate-400">全部商品</div>
@@ -299,43 +307,83 @@ export default function AdminProductsPage() {
         </button>
 
         <button
-          onClick={() => { setActiveTab('flash'); setSelectedBatchFilter('ALL'); }}
+          onClick={() => { setActiveMainTab('overseas'); setActiveSubTab('limited'); setSelectedBatchFilter('ALL'); }}
           className={`p-4 rounded-2xl border text-left transition cursor-pointer ${
-            activeTab === 'flash' ? 'bg-rose-950/40 border-rose-500 text-rose-300 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+            activeMainTab === 'overseas' ? 'bg-blue-950/40 border-blue-500 text-blue-300 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
           }`}
         >
-          <div className="text-xs font-semibold text-rose-400">🔥 限時下單</div>
+          <div className="text-xs font-semibold text-blue-400">🌍 海外代購</div>
           <div className="text-lg font-black text-white mt-1">
-            {validProducts.filter(p => p.category === 'flash').length} 項
+            {validProducts.filter(p => (p.main_category || 'overseas') === 'overseas').length} 項
           </div>
         </button>
 
         <button
-          onClick={() => { setActiveTab('batch'); setSelectedBatchFilter('ALL'); }}
+          onClick={() => { setActiveMainTab('selected'); setActiveSubTab('ambient'); setSelectedBatchFilter('ALL'); }}
           className={`p-4 rounded-2xl border text-left transition cursor-pointer ${
-            activeTab === 'batch' ? 'bg-emerald-950/40 border-emerald-500 text-emerald-300 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+            activeMainTab === 'selected' ? 'bg-emerald-950/40 border-emerald-500 text-emerald-300 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
           }`}
         >
-          <div className="text-xs font-semibold text-emerald-400">✈️ 各國連線</div>
+          <div className="text-xs font-semibold text-emerald-400">📦 嚴選好物</div>
           <div className="text-lg font-black text-white mt-1">
-            {validProducts.filter(p => p.category === 'batch').length} 項
-          </div>
-        </button>
-
-        <button
-          onClick={() => { setActiveTab('spot'); setSelectedBatchFilter('ALL'); }}
-          className={`p-4 rounded-2xl border text-left transition cursor-pointer ${
-            activeTab === 'spot' ? 'bg-amber-950/40 border-amber-500 text-amber-300 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <div className="text-xs font-semibold text-amber-400">📦 現貨專區</div>
-          <div className="text-lg font-black text-white mt-1">
-            {validProducts.filter(p => p.category === 'spot').length} 項
+            {validProducts.filter(p => p.main_category === 'selected').length} 項
           </div>
         </button>
       </div>
 
-      {activeTab !== 'spot' && (
+      {/* 🌟 第二層子分類篩選導覽列 */}
+      {activeMainTab === 'overseas' && (
+        <div className="flex gap-2 bg-slate-900 p-2 rounded-2xl border border-slate-800">
+          <button
+            onClick={() => setActiveSubTab('limited')}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeSubTab === 'limited' ? 'bg-rose-500 text-white shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            ⏳ 限時下單 ({validProducts.filter(p => (p.main_category || 'overseas') === 'overseas' && (p.sub_category || 'limited') === 'limited').length})
+          </button>
+          <button
+            onClick={() => setActiveSubTab('international')}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeSubTab === 'international' ? 'bg-blue-500 text-white shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            🌍 各國連線 ({validProducts.filter(p => (p.main_category || 'overseas') === 'overseas' && p.sub_category === 'international').length})
+          </button>
+        </div>
+      )}
+
+      {activeMainTab === 'selected' && (
+        <div className="flex gap-2 bg-slate-900 p-2 rounded-2xl border border-slate-800">
+          <button
+            onClick={() => setActiveSubTab('ambient')}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeSubTab === 'ambient' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            📦 常溫 ({validProducts.filter(p => p.main_category === 'selected' && p.sub_category === 'ambient').length})
+          </button>
+          <button
+            onClick={() => setActiveSubTab('refrigerated')}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeSubTab === 'refrigerated' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            🔥 冷藏 ({validProducts.filter(p => p.main_category === 'selected' && p.sub_category === 'refrigerated').length})
+          </button>
+          <button
+            onClick={() => setActiveSubTab('frozen')}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeSubTab === 'frozen' ? 'bg-cyan-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            ❄️ 冷凍 ({validProducts.filter(p => p.main_category === 'selected' && p.sub_category === 'frozen').length})
+          </button>
+        </div>
+      )}
+
+      {/* 批次篩選（當選擇海外代購-各國連線時顯示） */}
+      {activeMainTab === 'overseas' && activeSubTab === 'international' && (
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
           <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
             <Layers className="w-4 h-4" /> 依連線批次篩選：
@@ -349,14 +397,9 @@ export default function AdminProductsPage() {
                   : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
               }`}
             >
-              全部批次 ({activeTab === 'all' ? validProducts.length : validProducts.filter(p => p.category === activeTab).length})
+              全部批次
             </button>
             {batches.filter(b => b.status !== 'ended').map(b => {
-              const count = validProducts.filter(p => {
-                if (activeTab !== 'all' && p.category !== activeTab) return false
-                return p.batch_id === b.id || p.batch_name === b.name
-              }).length
-
               const batchNameStr = typeof b.name === 'string' ? b.name : String(b?.name || '未命名批次')
               return (
                 <button
@@ -368,7 +411,7 @@ export default function AdminProductsPage() {
                       : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
                   }`}
                 >
-                  {batchNameStr} ({count})
+                  {batchNameStr}
                 </button>
               )
             })}
@@ -381,8 +424,8 @@ export default function AdminProductsPage() {
       ) : filteredProducts.length === 0 ? (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center space-y-3">
           <AlertCircle className="w-8 h-8 text-slate-500 mx-auto" />
-          <div className="text-sm font-bold text-slate-300">此分類或批次目前沒有商品</div>
-          <p className="text-xs text-slate-500">請至左側「一鍵快速上架」新增商品或檢查批次狀態。</p>
+          <div className="text-sm font-bold text-slate-300">此分類目前沒有商品</div>
+          <p className="text-xs text-slate-500">請至左側「一鍵快速上架」新增商品！</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -391,6 +434,8 @@ export default function AdminProductsPage() {
             const productName = typeof p.name === 'string' ? p.name : String(p?.name || '未命名商品')
             const isActive = p.is_active !== false
             const images = getProductImages(p)
+            const mCat = p.main_category || 'overseas'
+            const sCat = p.sub_category || 'limited'
 
             return (
               <div key={p.id} className={`bg-slate-900 border rounded-3xl p-5 space-y-4 shadow-xl flex flex-col justify-between transition ${
@@ -399,12 +444,10 @@ export default function AdminProductsPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
-                        p.category === 'flash' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
-                        p.category === 'batch' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                        'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                      }`}>
-                        {p.category === 'flash' ? `🔥 ${p.batch_name || '限時下單'}` : p.category === 'batch' ? `✈️ ${p.batch_name || '各國連線'}` : '📦 現貨專區'}
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+                        {mCat === 'overseas' ? (sCat === 'limited' ? '⏳ 海外代購・限時下單' : `🌍 ${p.batch_name || '各國連線'}`) : (
+                          sCat === 'ambient' ? '📦 嚴選好物・常溫' : sCat === 'refrigerated' ? '🔥 嚴選好物・冷藏' : '❄️ 嚴選好物・冷凍'
+                        )}
                       </span>
                       {!isActive && (
                         <span className="text-[10px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded font-bold">
@@ -412,7 +455,6 @@ export default function AdminProductsPage() {
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-slate-400 font-semibold">庫存: {String(p.stock ?? 0)}</span>
                   </div>
 
                   <div className="flex items-center gap-3">
@@ -500,39 +542,86 @@ export default function AdminProductsPage() {
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">上架專區</label>
-                <div className="grid grid-cols-3 gap-2">
+                <label className="text-xs font-bold text-slate-300">1. 上架主分類</label>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setEditCategory('flash')}
-                    className={`py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
-                      editCategory === 'flash' ? 'bg-rose-500/20 border-rose-500 text-rose-400' : 'bg-slate-950 border-slate-800 text-slate-400'
+                    onClick={() => { setEditMainCategory('overseas'); setEditSubCategory('limited'); }}
+                    className={`py-2.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                      editMainCategory === 'overseas' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'
                     }`}
                   >
-                    🔥 限時下單
+                    🌍 海外代購
                   </button>
                   <button
                     type="button"
-                    onClick={() => setEditCategory('batch')}
-                    className={`py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
-                      editCategory === 'batch' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-400'
+                    onClick={() => { setEditMainCategory('selected'); setEditSubCategory('ambient'); }}
+                    className={`py-2.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                      editMainCategory === 'selected' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'
                     }`}
                   >
-                    ✈️ 各國連線
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditCategory('spot')}
-                    className={`py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
-                      editCategory === 'spot' ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-slate-950 border-slate-800 text-slate-400'
-                    }`}
-                  >
-                    📦 現貨專區
+                    📦 嚴選好物
                   </button>
                 </div>
               </div>
 
-              {editCategory !== 'spot' && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300">2. 子分類 / 溫層</label>
+                {editMainCategory === 'overseas' ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditSubCategory('limited')}
+                      className={`py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                        editSubCategory === 'limited' ? 'bg-rose-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      ⏳ 限時下單
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditSubCategory('international')}
+                      className={`py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                        editSubCategory === 'international' ? 'bg-blue-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      🌍 各國連線
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditSubCategory('ambient')}
+                      className={`py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                        editSubCategory === 'ambient' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      📦 常溫
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditSubCategory('refrigerated')}
+                      className={`py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                        editSubCategory === 'refrigerated' ? 'bg-amber-500 text-slate-950' : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      🔥 冷藏
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditSubCategory('frozen')}
+                      className={`py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                        editSubCategory === 'frozen' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      ❄️ 冷凍
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {editMainCategory === 'overseas' && editSubCategory === 'international' && (
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-emerald-400">所屬連線批次</label>
                   <select
@@ -558,7 +647,6 @@ export default function AdminProductsPage() {
                 />
               </div>
 
-              {/* 🟢 售價與成本並排 */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-300">售價 (NT$)</label>
@@ -581,19 +669,6 @@ export default function AdminProductsPage() {
                   />
                 </div>
               </div>
-
-              {editCategory === 'spot' && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-300">現貨庫存</label>
-                  <input
-                    type="number"
-                    required
-                    value={editStock}
-                    onChange={(e) => setEditStock(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
-                  />
-                </div>
-              )}
 
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
